@@ -71,6 +71,7 @@ const walletRoutes = require('./routes/wallet');
 const customerRoutes = require('./routes/register-customer');
 const driverRoutes = require('./routes/register-driver');
 const verificationRoutes = require('./routes/verification');
+const profileRoutes = require('./routes/profile');
 
 app.use('/auth', authRoutes);
 app.use('/admin', adminRoutes);
@@ -79,6 +80,7 @@ app.use('/wallet', walletRoutes);
 app.use('/register-driver', driverRoutes);
 app.use('/register-customer', customerRoutes);
 app.use('/verification', verificationRoutes);
+app.use('/profile', profileRoutes);
 
 // Error Handler
 app.use((err, req, res, next) => {
