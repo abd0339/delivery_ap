@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios'; // For making API requests
+import axios from 'axios';
 
 const Profile = () => {
   const navigate = useNavigate();
-  const [userType] = useState('customer'); // 'customer' (shop owner) or 'driver'
+  const userType = localStorage.getItem('userType');
+  const shopOwnerId = localStorage.getItem('shopOwnerId');
+  const driverId = localStorage.getItem('driverId');
+
   const [formData, setFormData] = useState({
     email: '',
     phoneNumber: '',
@@ -14,15 +17,26 @@ const Profile = () => {
     shopAddress: '',
     vehicleType: '',
   });
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Fetch user profile data on component mount
+  const userId = userType === 'driver' ? driverId : shopOwnerId;
+
   useEffect(() => {
+    if (!userType || !userId) {
+      setError('User type or ID missing');
+      setLoading(false);
+      return;
+    }
+
     const fetchProfile = async () => {
       try {
-        const response = await axios.get(`http://localhost:3000/profile`); // Replace '1' with the logged-in user's ID
-        setFormData(response.data);
+        const response = await axios.get(`http://localhost:3000/profile/${userType}/${userId}`);
+        setFormData((prev) => ({
+          ...prev,
+          ...response.data,
+        }));
       } catch (err) {
         setError('Failed to fetch profile data');
         console.error('Fetch error:', err);
@@ -32,17 +46,27 @@ const Profile = () => {
     };
 
     fetchProfile();
-  }, []);
+  }, [userType, userId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
+    if (!userType || !userId) {
+      setError('User type or ID missing');
+      return;
+    }
+
     try {
-      // Update profile (replace with actual API integration)
-      const response = await axios.put(`http://localhost:3000/profile/1`, formData); // Replace '1' with the logged-in user's ID
+      const response = await axios.put(`http://localhost:3000/profile/${userType}/${userId}`, formData);
       if (response.data.success) {
-        navigate(userType === 'customer' ? '/shop-owner-dashboard' : '/driver-dashboard');
+        if (userType === 'customer') {
+          navigate('/shop-owner-dashboard');
+        } else if (userType === 'driver') {
+          navigate('/driver-dashboard');
+        } else if (userType === 'admin') {
+          navigate('/admin-dashboard');
+        }
       } else {
         setError(response.data.message || 'Failed to update profile');
       }
@@ -62,10 +86,15 @@ const Profile = () => {
   return (
     <div style={styles.container}>
       <div style={styles.profileBox}>
-        {/* Back Link */}
         <div style={styles.backLink}>
-          <Link 
-            to={userType === 'customer' ? '/shop-owner-dashboard' : '/driver-dashboard'} 
+          <Link
+            to={
+              userType === 'customer'
+                ? '/shop-owner-dashboard'
+                : userType === 'driver'
+                ? '/driver-dashboard'
+                : '/admin-dashboard'
+            }
             style={styles.link}
           >
             ← Back to Dashboard
@@ -74,9 +103,7 @@ const Profile = () => {
 
         <h2 style={styles.title}>Update Profile</h2>
 
-        {/* Profile Form */}
         <form onSubmit={handleSubmit} style={styles.form}>
-          {/* Common Fields */}
           <div style={styles.formGroup}>
             <label>Email</label>
             <input
@@ -168,14 +195,16 @@ const Profile = () => {
             </div>
           )}
 
-          <button type="submit" style={styles.saveButton}>Save Changes</button>
+          <button type="submit" style={styles.saveButton}>
+            Save Changes
+          </button>
         </form>
       </div>
     </div>
   );
 };
 
-// Inline CSS Styles (consistent with other pages)
+// Styles
 const styles = {
   container: {
     display: 'flex',

@@ -1,189 +1,153 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios'; // For making API requests
+import { useNavigate } from 'react-router-dom'; // Change to useNavigate for React Router v6
+import axios from 'axios'; // For API requests
 
 const AddFunds = () => {
-  const navigate = useNavigate();
   const [amount, setAmount] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('credit_card');
   const [error, setError] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
+  const userType = localStorage.getItem('userType');
+  let userId;
 
-    // Validate amount
-    if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
-      setError('Please enter a valid amount');
+  // Assign userId based on user type (customer, driver, admin)
+  if (userType === 'customer') {
+    userId = localStorage.getItem('shopOwnerId');
+  } else if (userType === 'driver') {
+    userId = localStorage.getItem('driverId');
+  } else if (userType === 'admin') {
+    userId = localStorage.getItem('shopOwnerId');
+  }
+
+  const navigate = useNavigate(); // Use useNavigate instead of useHistory
+
+  const handleAddFunds = async () => {
+    if (!amount || parseFloat(amount) <= 0) {
+      setError('Please enter a valid amount greater than zero.');
       return;
     }
 
-    setIsSubmitting(true);
+    setLoading(true);
+    setError('');
+    setSuccessMessage('');
 
     try {
-      // Simulate adding funds (replace with actual API integration)
-      const response = await axios.post('http://localhost:3000/wallet/add-funds', {
-        userId: 1, // Replace with the logged-in user's ID
+      const response = await axios.post('http://localhost:3001/wallet/add-funds', {
+        userId: userId,
         amount: parseFloat(amount),
-        paymentMethod,
       });
 
       if (response.data.success) {
-        navigate('/wallet'); // Redirect to wallet after successful transaction
+        setSuccessMessage('Funds added successfully!');
+        setAmount(''); // Clear input field
+        setTimeout(() => {
+          navigate('/wallet'); // Use navigate to redirect to wallet page after success
+        }, 1500);
       } else {
         setError(response.data.message || 'Failed to add funds');
       }
     } catch (err) {
       setError('An error occurred while adding funds');
-      console.error('Add funds error:', err);
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
   return (
     <div style={styles.container}>
-      <div style={styles.formContainer}>
-        {/* Back Button */}
-        <div style={styles.backLink}>
-          <Link to="/wallet" style={styles.link}>← Back to Wallet</Link>
+      <h2 style={styles.heading}>Add Funds</h2>
+
+      {loading && <p>Processing...</p>}
+      {successMessage && <p style={styles.success}>{successMessage}</p>}
+      {error && <p style={styles.error}>{error}</p>}
+
+      <div style={styles.card}>
+        <div style={styles.inputGroup}>
+          <label style={styles.label}>Amount to Add:</label>
+          <input
+            type="number"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            style={styles.input}
+            placeholder="Enter amount"
+            min="1"
+            step="0.01"
+          />
         </div>
 
-        <h2 style={styles.title}>Add Funds to Wallet</h2>
+        <button onClick={handleAddFunds} style={styles.button}>Add Funds</button>
+      </div>
 
-        {/* Error Message */}
-        {error && <p style={styles.error}>{error}</p>}
-
-        {/* Add Funds Form */}
-        <form onSubmit={handleSubmit}>
-          {/* Amount Input */}
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Amount (USD)</label>
-            <input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="0.00"
-              step="0.01"
-              min="0.01"
-              style={styles.input}
-              disabled={isSubmitting}
-            />
-          </div>
-
-          {/* Payment Method */}
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Payment Method</label>
-            <select
-              value={paymentMethod}
-              onChange={(e) => setPaymentMethod(e.target.value)}
-              style={styles.select}
-              disabled={isSubmitting}
-            >
-              <option value="credit_card">Credit/Debit Card</option>
-              <option value="paypal">PayPal</option>
-              <option value="bank_transfer">Bank Transfer</option>
-            </select>
-          </div>
-
-          {/* Submit Button */}
-          <button 
-            type="submit" 
-            style={styles.submitButton}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? 'Processing...' : 'Add Funds'}
-          </button>
-        </form>
-
-        {/* Security Note */}
-        <p style={styles.securityNote}>
-          🔒 All transactions are securely processed using SSL encryption.
-        </p>
+      <div style={styles.cancelButtonContainer}>
+        <button onClick={() => navigate('/wallet')} style={styles.cancelButton}>Cancel</button>
       </div>
     </div>
   );
 };
 
-// Inline CSS Styles (consistent with Wallet Page)
 const styles = {
   container: {
-    display: 'flex',
-    justifyContent: 'center',
-    minHeight: '100vh',
-    backgroundColor: '#f0f2f5',
     padding: '20px',
+    maxWidth: '500px',
+    margin: '0 auto',
     fontFamily: 'Arial, sans-serif',
   },
-  formContainer: {
-    backgroundColor: 'white',
-    padding: '30px',
-    borderRadius: '10px',
-    boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-    width: '100%',
-    maxWidth: '500px',
-  },
-  backLink: {
+  heading: {
+    fontSize: '24px',
     marginBottom: '20px',
-  },
-  link: {
-    color: '#4CAF50',
-    textDecoration: 'none',
-    fontSize: '14px',
-  },
-  title: {
-    color: '#333',
-    marginBottom: '30px',
     textAlign: 'center',
   },
-  formGroup: {
-    marginBottom: '25px',
+  card: {
+    padding: '15px',
+    border: '1px solid #ccc',
+    borderRadius: '8px',
+    backgroundColor: '#f9f9f9',
+  },
+  inputGroup: {
+    marginBottom: '15px',
   },
   label: {
-    display: 'block',
-    marginBottom: '8px',
-    color: '#666',
-    fontSize: '14px',
+    fontSize: '16px',
+    marginBottom: '5px',
   },
   input: {
     width: '100%',
-    padding: '12px',
-    border: '1px solid #ddd',
+    padding: '10px',
     borderRadius: '5px',
+    border: '1px solid #ccc',
     fontSize: '16px',
   },
-  select: {
+  button: {
     width: '100%',
-    padding: '12px',
-    border: '1px solid #ddd',
-    borderRadius: '5px',
-    fontSize: '16px',
-    backgroundColor: 'white',
-  },
-  submitButton: {
-    width: '100%',
+    padding: '10px',
     backgroundColor: '#4CAF50',
     color: 'white',
-    border: 'none',
-    padding: '15px',
     borderRadius: '5px',
     fontSize: '16px',
     cursor: 'pointer',
-    marginTop: '20px',
-    opacity: (props) => (props.disabled ? 0.7 : 1),
-    pointerEvents: (props) => (props.disabled ? 'none' : 'auto'),
+  },
+  cancelButtonContainer: {
+    marginTop: '15px',
+    textAlign: 'center',
+  },
+  cancelButton: {
+    padding: '10px 20px',
+    backgroundColor: '#f44336',
+    color: 'white',
+    borderRadius: '5px',
+    fontSize: '16px',
+    cursor: 'pointer',
   },
   error: {
-    color: '#ff4444',
+    color: 'red',
     textAlign: 'center',
-    marginBottom: '20px',
+    marginBottom: '10px',
   },
-  securityNote: {
+  success: {
+    color: 'green',
     textAlign: 'center',
-    color: '#666',
-    fontSize: '12px',
-    marginTop: '30px',
+    marginBottom: '10px',
   },
 };
 

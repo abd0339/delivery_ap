@@ -19,7 +19,7 @@ const ShopOwnerDashboard = () => {
           throw new Error("Shop owner ID not found. Please log in again.");
         }
         const ordersResponse = await axios.get(`http://localhost:3001/orders/shop/${shopOwnerId}`);
-        const walletResponse = await axios.get(`http://localhost:3001/wallet/shop/${shopOwnerId}`);
+        const walletResponse = await axios.get(`http://localhost:3001/wallet/shopowner/${shopOwnerId}`);
         console.log("Orders:", ordersResponse.data);
         console.log("Wallet:", walletResponse.data);
 

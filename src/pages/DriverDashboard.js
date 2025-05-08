@@ -24,13 +24,17 @@ const DriverDashboard = () => {
         const [availableOrdersRes, currentOrdersRes, walletRes, verificationRes] = await Promise.all([
           axios.get('http://localhost:3001/orders/available'),
           axios.get(`http://localhost:3001/orders/current/${driverId}`),
-          axios.get(`http://localhost:3001/wallet/${driverId}`),
+          axios.get(`http://localhost:3001/wallet/driver/${driverId}`),
           axios.get(`http://localhost:3001/verification/${driverId}`)
         ]);
 
         setAvailableOrders(availableOrdersRes.data);
         setCurrentOrders(currentOrdersRes.data);
-        setBalance(`$${walletRes.data.balance.toFixed(2)}`);
+
+        const rawBalance = walletRes.data.balance;
+        const numericBalance = parseFloat(rawBalance) || 0;
+        setBalance(`$${numericBalance.toFixed(2)}`);
+
         setIsVerified(verificationRes.data.isVerified);
       } catch (err) {
         console.error('Fetch error:', err);
@@ -110,7 +114,7 @@ const DriverDashboard = () => {
                   <p><strong>Order #{order.id}</strong></p>
                   <p>Pickup: {order.pickup_address}</p>
                   <p>Delivery: {order.delivery_address}</p>
-                  <p>Amount: ${order.total_amount.toFixed(2)}</p>
+                  <p>Amount: ${parseFloat(order.total_amount).toFixed(2)}</p>
                   <button
                     onClick={() => handleAcceptOrder(order.id)}
                     style={styles.acceptButton}
