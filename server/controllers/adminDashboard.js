@@ -73,4 +73,32 @@ exports.fetchAnalytics = async (req, res) => {
   }
 };
 
+// POST route to approve or reject driver
+router.post("/verify", async (req, res) => {
+  try {
+    const { driverId, status } = req.body;
+
+    const sql = "SELECT * FROM driver_verification WHERE driver_id = ?";
+    const [existingRows] = await pool.query(sql, [driverId]);
+
+    if (existingRows.length === 0) {
+      return res.status(404).json({ message: "Driver verification record not found" });
+    }
+
+    const updateSql = "UPDATE driver_verification SET status = ? WHERE driver_id = ?";
+    await pool.query(updateSql, [status, driverId]);
+
+    // OPTIONAL: update driver's is_verified column
+    const driverStatus = status === 'approved' ? 1 : 0;
+    const updateDriverSql = "UPDATE drivers SET is_verified = ? WHERE driver_id = ?";
+    await pool.query(updateDriverSql, [driverStatus, driverId]);
+
+    res.json({ message: "Status updated successfully" });
+  } catch (error) {
+    console.error("Error updating status:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+
 
