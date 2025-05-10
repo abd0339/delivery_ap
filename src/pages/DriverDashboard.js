@@ -7,7 +7,10 @@ const DriverDashboard = () => {
   const [availableOrders, setAvailableOrders] = useState([]);
   const [currentOrders, setCurrentOrders] = useState([]);
   const [balance, setBalance] = useState('$0.00');
-  const [isVerified, setIsVerified] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState({ 
+    isVerified: false, 
+    status: 'pending' 
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -21,11 +24,16 @@ const DriverDashboard = () => {
       }
 
       try {
-        const [availableOrdersRes, currentOrdersRes, walletRes, verificationRes] = await Promise.all([
+        const [
+          availableOrdersRes, 
+          currentOrdersRes, 
+          walletRes, 
+          verificationRes
+        ] = await Promise.all([
           axios.get('http://localhost:3001/orders/available'),
           axios.get(`http://localhost:3001/orders/current/${driverId}`),
           axios.get(`http://localhost:3001/wallet/driver/${driverId}`),
-          axios.get(`http://localhost:3001/verification/${driverId}`)
+          axios.get(`http://localhost:3001/verification/status/${driverId}`)
         ]);
 
         setAvailableOrders(availableOrdersRes.data);
@@ -35,10 +43,15 @@ const DriverDashboard = () => {
         const numericBalance = parseFloat(rawBalance) || 0;
         setBalance(`$${numericBalance.toFixed(2)}`);
 
-        setIsVerified(verificationRes.data.isVerified);
+        if (verificationRes.data.success) {
+          setVerificationStatus({
+            isVerified: verificationRes.data.isVerified,
+            status: verificationRes.data.verificationStatus
+          });
+        }
       } catch (err) {
         console.error('Fetch error:', err);
-        setError('Failed to fetch data');
+        setError(err.response.data.message || 'Failed to fetch data');
       } finally {
         setLoading(false);
       }
@@ -56,11 +69,27 @@ const DriverDashboard = () => {
     }
 
     try {
-      await axios.post('http://localhost:3001/orders/accept', { orderId, driverId });
-      navigate('/current-orders');
+      await axios.post('http://localhost:3001/orders/accept', { 
+        orderId, 
+        driverId 
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      // Refresh orders after acceptance
+      const [available, current] = await Promise.all([
+        axios.get('http://localhost:3001/orders/available'),
+        axios.get(`http://localhost:3001/orders/current/${driverId}`)
+      ]);
+      
+      setAvailableOrders(available.data);
+      setCurrentOrders(current.data);
+      
     } catch (err) {
       console.error('Accept order error:', err);
-      setError('Failed to accept order');
+      setError(err.response.data.message || 'Failed to accept order');
     }
   };
 
@@ -92,17 +121,18 @@ const DriverDashboard = () => {
           </div>
           <div style={styles.verificationCard}>
             <h3>ID Verification</h3>
-            {isVerified ? (
+            {verificationStatus.isVerified ? (
               <p style={styles.verifiedText}>✅ Verified</p>
             ) : (
               <>
-                <p style={styles.notVerifiedText}>❌ Not Verified</p>
+                <p style={styles.notVerifiedText}>❌ {verificationStatus.status.charAt(0).toUpperCase() + verificationStatus.status.slice(1)}</p>
                 <Link to="/id-verification" style={styles.navLink}>Verify Now</Link>
               </>
             )}
           </div>
         </div>
 
+        {/* Rest of the component remains the same */}
         <div style={styles.ordersSection}>
           <h2>Available Orders</h2>
           <div style={styles.ordersList}>

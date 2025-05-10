@@ -70,8 +70,8 @@ const ordersRoutes = require('./routes/orders');
 const walletRoutes = require('./routes/wallet');
 const customerRoutes = require('./routes/register-customer');
 const driverRoutes = require('./routes/register-driver');
-const verificationRoutes = require('./routes/verification');
 const profileRoutes = require('./routes/profile');
+const verificationRoutes = require('./routes/verfi');
 
 app.use('/auth', authRoutes);
 app.use('/admin', adminRoutes);
@@ -81,6 +81,8 @@ app.use('/register-driver', driverRoutes);
 app.use('/register-customer', customerRoutes);
 app.use('/verification', verificationRoutes);
 app.use('/profile', profileRoutes);
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 
 // Error Handler
 app.use((err, req, res, next) => {

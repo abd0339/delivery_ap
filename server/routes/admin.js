@@ -5,7 +5,8 @@ const {
     fetchAllUsers,
     fetchAllOrders,
     fetchVerificationRequests,
-    fetchAnalytics
+    fetchAnalytics,
+    verifyDriver 
   } = require('../controllers/adminDashboard');
   
   // Existing route
@@ -16,5 +17,7 @@ const {
   router.get('/verification-requests', fetchVerificationRequests);
   router.get('/analytics', fetchAnalytics);
   
+
+  router.post('/verify', verifyDriver);
 
 module.exports = router;

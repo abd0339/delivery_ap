@@ -36,7 +36,7 @@ exports.fetchVerificationRequests = async (req, res) => {
   try {
     const [rows] = await db.query(`
       SELECT id_verification_id AS id, driver_id AS driver, document_image AS document
-      FROM id_verification
+      FROM driver_verification
       WHERE verified = 0
     `);
     res.json({ requests: rows });
@@ -74,7 +74,7 @@ exports.fetchAnalytics = async (req, res) => {
 };
 
 // POST route to approve or reject driver
-router.post("/verify", async (req, res) => {
+exports.verifyDriver = async (req, res) => {
   try {
     const { driverId, status } = req.body;
 
@@ -88,7 +88,6 @@ router.post("/verify", async (req, res) => {
     const updateSql = "UPDATE driver_verification SET status = ? WHERE driver_id = ?";
     await pool.query(updateSql, [status, driverId]);
 
-    // OPTIONAL: update driver's is_verified column
     const driverStatus = status === 'approved' ? 1 : 0;
     const updateDriverSql = "UPDATE drivers SET is_verified = ? WHERE driver_id = ?";
     await pool.query(updateDriverSql, [driverStatus, driverId]);
@@ -98,7 +97,7 @@ router.post("/verify", async (req, res) => {
     console.error("Error updating status:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
-});
+};
 
 
 
