@@ -11,10 +11,12 @@ const CreateOrder = () => {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [customerId, setCustomerId] = useState(null);
+  const [orderType, setOrderType] = useState('simple');
+  const [length, setLength] = useState('');
+  const [weight, setWeight] = useState('');
 
   useEffect(() => {
     const storedId = localStorage.getItem('shopOwnerId');
-    console.log('📦 Loaded shopOwnerId from localStorage:', storedId);
     if (storedId) {
       setCustomerId(storedId);
     } else {
@@ -60,9 +62,10 @@ const CreateOrder = () => {
       deliveryAddress,
       paymentMethod,
       totalAmount: calculateTotal(items),
+      order_type: orderType,
+      length: orderType === 'package' ? parseFloat(length) : null,
+      weight: orderType === 'package' ? parseFloat(weight) : null,
     };
-
-    console.log('📤 Submitting order:', orderData);
 
     try {
       const response = await axios.post('http://localhost:3001/orders', orderData, {
@@ -87,6 +90,29 @@ const CreateOrder = () => {
     <div style={styles.container}>
       <h2>Create New Order</h2>
       <form onSubmit={handleSubmit} style={styles.form}>
+        <div style={styles.radioGroup}>
+          <label>
+            <input
+              type="radio"
+              name="orderType"
+              value="simple"
+              checked={orderType === 'simple'}
+              onChange={() => setOrderType('simple')}
+            />
+            Simple Order
+          </label>
+          <label>
+            <input
+              type="radio"
+              name="orderType"
+              value="package"
+              checked={orderType === 'package'}
+              onChange={() => setOrderType('package')}
+            />
+            Package Order
+          </label>
+        </div>
+
         {items.map((item, index) => (
           <div key={index} style={styles.itemRow}>
             <input
@@ -120,9 +146,33 @@ const CreateOrder = () => {
             </button>
           </div>
         ))}
+
         <button type="button" onClick={handleAddItem} style={styles.addButton}>
           Add Item
         </button>
+
+        {orderType === 'package' && (
+          <>
+            <input
+              type="number"
+              placeholder="Length (cm)"
+              value={length}
+              onChange={(e) => setLength(e.target.value)}
+              style={styles.input}
+              min="0"
+              required
+            />
+            <input
+              type="number"
+              placeholder="Weight (kg)"
+              value={weight}
+              onChange={(e) => setWeight(e.target.value)}
+              style={styles.input}
+              min="0"
+              required
+            />
+          </>
+        )}
 
         <textarea
           placeholder="Delivery Address"
@@ -222,6 +272,11 @@ const styles = {
   error: {
     color: 'red',
     fontSize: '14px',
+  },
+  radioGroup: {
+    display: 'flex',
+    gap: '20px',
+    marginBottom: '10px',
   },
 };
 
