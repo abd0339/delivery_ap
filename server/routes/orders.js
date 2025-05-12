@@ -1,6 +1,7 @@
 const express = require('express');
 const pool = require('../db');
-const predictPrice = require('../utils/predictPrice');
+const predictPrice = require('../ml/predictPrice');
+const getDistance = require('../utils/getDistance');
 const router = express.Router();
 
 // Create a new order
@@ -10,13 +11,23 @@ router.post('/', async (req, res) => {
     items,
     deliveryAddress,
     paymentMethod,
-    type, // "simple" or "package"
+    type, 
     length,
     weight,
+    originAddress 
   } = req.body;
 
   try {
-    const totalAmount = predictPrice({ type, length, weight });
+    // Get distance using Google Maps Distance Matrix API
+    const distance = await getDistance(originAddress, deliveryAddress);
+
+    // Predict price using ML model
+    const totalAmount = await predictPrice({
+      type: type === 'package' ? 1 : 0,
+      length: type === 'package' ? length : 0,
+      weight: type === 'package' ? weight : 0,
+      distance
+    });
 
     const insertQuery = `
       INSERT INTO orders (

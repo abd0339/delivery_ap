@@ -6,6 +6,7 @@ const CreateOrder = () => {
   const navigate = useNavigate();
   const [items, setItems] = useState([{ name: '', quantity: 1, price: 0 }]);
   const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [originAddress, setOriginAddress] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [totalAmount, setTotalAmount] = useState(0);
   const [error, setError] = useState('');
@@ -56,15 +57,21 @@ const CreateOrder = () => {
       return;
     }
 
+    if (!originAddress) {
+      setError('Please provide an origin address.');
+      setIsSubmitting(false);
+      return;
+    }
+
     const orderData = {
       customerId,
       items,
       deliveryAddress,
+      originAddress,
       paymentMethod,
-      totalAmount: calculateTotal(items),
-      order_type: orderType,
+      type: orderType,
       length: orderType === 'package' ? parseFloat(length) : null,
-      weight: orderType === 'package' ? parseFloat(weight) : null,
+      weight: orderType === 'package' ? parseFloat(weight) : null
     };
 
     try {
@@ -173,6 +180,14 @@ const CreateOrder = () => {
             />
           </>
         )}
+
+        <textarea
+          placeholder="Origin Address"
+          value={originAddress}
+          onChange={(e) => setOriginAddress(e.target.value)}
+          style={styles.textarea}
+          required
+        />
 
         <textarea
           placeholder="Delivery Address"
