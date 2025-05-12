@@ -8,64 +8,151 @@ const router = express.Router();
 router.post('/', async (req, res) => {
   const {
     customerId,
-    items,
-    deliveryAddress,
+    orderType,
+    serialNumber,
+    originAddress,
+    deliveryInfo,
     paymentMethod,
-    type, 
+    packagePrice,
     length,
-    weight,
-    originAddress 
+    weight
   } = req.body;
 
   try {
-    // Get distance using Google Maps Distance Matrix API
-    const distance = await getDistance(originAddress, deliveryAddress);
-
-    // Predict price using ML model
-    const totalAmount = await predictPrice({
-      type: type === 'package' ? 1 : 0,
-      length: type === 'package' ? length : 0,
-      weight: type === 'package' ? weight : 0,
-      distance
-    });
-
-    const insertQuery = `
-      INSERT INTO orders (
-        customer_id,
-        delivery_address,
-        payment_method,
-        total_amount,
-        type,
-        length,
-        weight
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)
-    `;
-
-    const values = [
-      customerId,
-      deliveryAddress,
-      paymentMethod,
-      totalAmount,
-      type,
-      type === 'package' ? length : null,
-      type === 'package' ? weight : null,
-    ];
-
-    const [orderResult] = await pool.query(insertQuery, values);
-
-    for (const item of items) {
-      await pool.query(
-        'INSERT INTO order_items (order_id, item_name, quantity, price) VALUES (?, ?, ?, ?)',
-        [orderResult.insertId, item.name, item.quantity, item.price]
-      );
+    // Validate required fields
+    if (!customerId || !originAddress || !deliveryInfo || !packagePrice) {
+      return res.status(400).json({ success: false, message: 'Missing required fields' });
     }
 
-    res.json({ success: true, orderId: orderResult.insertId, totalAmount });
+    // Calculate distance for package orders
+    let distance = 0;
+    if (orderType === 'package') {
+      try {
+        distance = await getDistance(originAddress, 
+          typeof deliveryInfo === 'string' ? deliveryInfo : `${deliveryInfo.lat},${deliveryInfo.lng}`
+        ) || 0;
+      } catch (distanceError) {
+        console.error('Distance calculation failed:', distanceError);
+        return res.status(400).json({ success: false, message: 'Invalid delivery location' });
+      }
+    }
+
+    // Predict delivery fee
+    let predictedPrice = 0;
+    try {
+      predictedPrice = await predictPrice({
+        type: orderType === 'package' ? 1 : 0,
+        length: orderType === 'package' ? parseFloat(length) : 0,
+        weight: orderType === 'package' ? parseFloat(weight) : 0,
+        distance
+      });
+    } catch (predictionError) {
+      console.error('Price prediction failed:', predictionError);
+      return res.status(500).json({ success: false, message: 'Price calculation failed' });
+    }
+
+    // Calculate totals
+    const totalAmount = parseFloat(packagePrice) + predictedPrice;
+
+    // Wallet balance check
+    if (paymentMethod === 'wallet') {
+      const [wallet] = await pool.query(
+        'SELECT balance FROM wallets WHERE user_id = ? AND user_type = "customer"',
+        [customerId]
+      );
+      
+      if (!wallet.length || wallet[0].balance < totalAmount) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Insufficient wallet balance' 
+        });
+      }
+    }
+
+    // Create order transaction
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    try {
+      // Insert main order
+      const [orderResult] = await connection.query(`
+        INSERT INTO orders (
+          customer_id,
+          order_type,
+          origin_address,
+          delivery_address,
+          payment_method,
+          total_amount,
+          predicted_price,
+          serial_number,
+          length,
+          weight,
+          price
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        customerId,
+        orderType,
+        originAddress,
+        JSON.stringify(deliveryInfo),
+        paymentMethod,
+        totalAmount,
+        predictedPrice,
+        serialNumber || null,
+        orderType === 'package' ? length : null,
+        orderType === 'package' ? weight : null,
+        packagePrice
+      ]);
+
+      // Update wallet if using wallet payment
+      if (paymentMethod === 'wallet') {
+        await connection.query(`
+          UPDATE wallets 
+          SET balance = balance - ?
+          WHERE user_id = ? AND user_type = 'customer'
+        `, [totalAmount, customerId]);
+
+        await connection.query(`
+          INSERT INTO transactions (
+            wallet_id_out,
+            amount,
+            type,
+            description,
+            user_id
+          ) VALUES (
+            (SELECT wallet_id FROM wallets WHERE user_id = ? AND user_type = 'customer'),
+            ?,
+            'withdrawal',
+            'Order payment',
+            ?
+          )
+        `, [customerId, totalAmount, customerId]);
+      }
+
+      await connection.commit();
+      
+      res.json({ 
+        success: true, 
+        orderId: orderResult.insertId,
+        totalAmount,
+        predictedPrice
+      });
+
+    } catch (transactionError) {
+      await connection.rollback();
+      throw transactionError;
+    } finally {
+      connection.release();
+    }
+
   } catch (error) {
     console.error('Order creation failed:', error);
-    res.status(500).json({ success: false, message: 'Failed to create order' });
+    res.status(500).json({ 
+      success: false, 
+      message: error.message || 'Failed to create order' 
+    });
   }
 });
+
 
 // Get orders by customer ID (shop owner)
 router.get('/shop/:customerId', async (req, res) => {

@@ -1,92 +1,111 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
 
 const CreateOrder = () => {
   const navigate = useNavigate();
-  const [items, setItems] = useState([{ name: '', quantity: 1, price: 0 }]);
-  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [orderType, setOrderType] = useState('simple');
+  const [serialNumber, setSerialNumber] = useState('');
+  const [packagePrice, setPackagePrice] = useState('');
   const [originAddress, setOriginAddress] = useState('');
+  const [useDefaultOrigin, setUseDefaultOrigin] = useState(true);
+  const [deliveryPhone, setDeliveryPhone] = useState('');
+  const [showMap, setShowMap] = useState(false);
+  const [deliveryCoords, setDeliveryCoords] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('cash');
-  const [totalAmount, setTotalAmount] = useState(0);
+  const [predictedPrice, setPredictedPrice] = useState(0);
+  const [length, setLength] = useState('');
+  const [weight, setWeight] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [customerId, setCustomerId] = useState(null);
-  const [orderType, setOrderType] = useState('simple');
-  const [length, setLength] = useState('');
-  const [weight, setWeight] = useState('');
+  const [shopAddress, setShopAddress] = useState('');
+  const [distance, setDistance] = useState(0);
+
+  const mapContainerStyle = {
+    height: '300px',
+    width: '100%'
+  };
 
   useEffect(() => {
-    const storedId = localStorage.getItem('shopOwnerId');
-    if (storedId) {
-      setCustomerId(storedId);
-    } else {
-      setError('Customer ID not found. Please log in again.');
-    }
+    const fetchCustomerData = async () => {
+      const storedId = localStorage.getItem('shopOwnerId');
+      if (storedId) {
+        setCustomerId(storedId);
+        try {
+          const response = await axios.get(`http://localhost:3001/customers/${storedId}`);
+          setShopAddress(response.data.shop_address);
+          setOriginAddress(response.data.shop_address);
+        } catch (err) {
+          console.error('Error fetching customer data:', err);
+        }
+      }
+    };
+    fetchCustomerData();
   }, []);
 
-  const handleItemChange = (index, field, value) => {
-    const newItems = [...items];
-    newItems[index][field] = field === 'quantity' || field === 'price' ? Number(value) : value;
-    setItems(newItems);
-    setTotalAmount(calculateTotal(newItems));
+  const handleAddressToggle = () => {
+    const newState = !useDefaultOrigin;
+    setUseDefaultOrigin(newState);
+    if (newState) setOriginAddress(shopAddress);
   };
 
-  const handleAddItem = () => {
-    setItems([...items, { name: '', quantity: 1, price: 0 }]);
+  const handleMapClick = (e) => {
+    setDeliveryCoords({
+      lat: e.latLng.lat(),
+      lng: e.latLng.lng()
+    });
   };
 
-  const handleRemoveItem = (index) => {
-    const newItems = items.filter((_, i) => i !== index);
-    setItems(newItems);
-    setTotalAmount(calculateTotal(newItems));
+  const calculateDistance = async () => {
+    if (!deliveryCoords || !shopAddress) return;
+    
+    try {
+      const response = await axios.post('http://localhost:3001/calculate-distance', {
+        origin: shopAddress,
+        destination: `${deliveryCoords.lat},${deliveryCoords.lng}`
+      });
+      setDistance(response.data.distance);
+    } catch (err) {
+      console.error('Distance calculation error:', err);
+    }
   };
 
-  const calculateTotal = (items) => {
-    return items.reduce((sum, item) => sum + item.quantity * item.price, 0);
-  };
+  useEffect(() => {
+    if (orderType === 'package' && deliveryCoords) {
+      calculateDistance();
+    }
+  }, [deliveryCoords, orderType]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setIsSubmitting(true);
 
-    if (!customerId) {
-      setError('Customer ID not found. Please log in again.');
-      setIsSubmitting(false);
-      return;
-    }
-
-    if (!originAddress) {
-      setError('Please provide an origin address.');
-      setIsSubmitting(false);
-      return;
-    }
-
     const orderData = {
       customerId,
-      items,
-      deliveryAddress,
+      orderType,
+      serialNumber: serialNumber || null,
       originAddress,
+      deliveryInfo: showMap ? deliveryCoords : deliveryPhone,
       paymentMethod,
-      type: orderType,
-      length: orderType === 'package' ? parseFloat(length) : null,
-      weight: orderType === 'package' ? parseFloat(weight) : null
+      packagePrice: parseFloat(packagePrice),
+      deliveryFee: predictedPrice,
+      totalPrice: (parseFloat(packagePrice) || 0) + predictedPrice,
+      ...(orderType === 'package' && {
+        length: parseFloat(length),
+        weight: parseFloat(weight),
+        distance: distance
+      })
     };
 
     try {
-      const response = await axios.post('http://localhost:3001/orders', orderData, {
-        headers: { 'Content-Type': 'application/json' },
-        withCredentials: true,
-      });
-
+      const response = await axios.post('http://localhost:3001/orders', orderData);
       if (response.data.success) {
         navigate('/shop-owner-dashboard');
-      } else {
-        setError(response.data.message || 'Order creation failed');
       }
     } catch (err) {
-      console.error('❌ Order creation error:', err);
       setError('Failed to create order');
     } finally {
       setIsSubmitting(false);
@@ -97,6 +116,7 @@ const CreateOrder = () => {
     <div style={styles.container}>
       <h2>Create New Order</h2>
       <form onSubmit={handleSubmit} style={styles.form}>
+        {/* Order Type Selection */}
         <div style={styles.radioGroup}>
           <label>
             <input
@@ -106,7 +126,7 @@ const CreateOrder = () => {
               checked={orderType === 'simple'}
               onChange={() => setOrderType('simple')}
             />
-            Simple Order
+            Simple Package
           </label>
           <label>
             <input
@@ -116,102 +136,152 @@ const CreateOrder = () => {
               checked={orderType === 'package'}
               onChange={() => setOrderType('package')}
             />
-            Package Order
+            Big Package
           </label>
         </div>
 
-        {items.map((item, index) => (
-          <div key={index} style={styles.itemRow}>
-            <input
-              type="text"
-              placeholder="Item name"
-              value={item.name}
-              onChange={(e) => handleItemChange(index, 'name', e.target.value)}
-              style={styles.input}
-              required
-            />
-            <input
-              type="number"
-              placeholder="Quantity"
-              value={item.quantity}
-              onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-              style={styles.input}
-              min="1"
-              required
-            />
-            <input
-              type="number"
-              placeholder="Price"
-              value={item.price}
-              onChange={(e) => handleItemChange(index, 'price', e.target.value)}
-              style={styles.input}
-              min="0"
-              required
-            />
-            <button type="button" onClick={() => handleRemoveItem(index)} style={styles.removeButton}>
-              Remove
-            </button>
-          </div>
-        ))}
+        {/* Package Price Input */}
+        <input
+          type="number"
+          placeholder="Package Price *"
+          value={packagePrice}
+          onChange={(e) => setPackagePrice(e.target.value)}
+          style={styles.input}
+          required
+        />
 
-        <button type="button" onClick={handleAddItem} style={styles.addButton}>
-          Add Item
-        </button>
+        {/* Serial Number Input */}
+        <input
+          type="text"
+          placeholder="Bill Serial Number (Optional)"
+          value={serialNumber}
+          onChange={(e) => setSerialNumber(e.target.value)}
+          style={styles.input}
+        />
 
+        {/* Package Details */}
         {orderType === 'package' && (
-          <>
+          <div style={styles.packageDetails}>
             <input
               type="number"
-              placeholder="Length (cm)"
+              placeholder="Length (cm) *"
               value={length}
               onChange={(e) => setLength(e.target.value)}
               style={styles.input}
-              min="0"
               required
             />
             <input
               type="number"
-              placeholder="Weight (kg)"
+              placeholder="Weight (kg) *"
               value={weight}
               onChange={(e) => setWeight(e.target.value)}
               style={styles.input}
-              min="0"
               required
             />
-          </>
+          </div>
         )}
 
-        <textarea
-          placeholder="Origin Address"
-          value={originAddress}
-          onChange={(e) => setOriginAddress(e.target.value)}
-          style={styles.textarea}
-          required
-        />
+        {/* Origin Address Section */}
+        <div style={styles.addressSection}>
+          <div style={styles.originHeader}>
+            <h4>Origin Address</h4>
+            <button
+              type="button"
+              onClick={handleAddressToggle}
+              style={styles.toggleButton}
+            >
+              {useDefaultOrigin ? 'Change Address' : 'Use Default'}
+            </button>
+          </div>
+          <textarea
+            value={originAddress}
+            onChange={(e) => setOriginAddress(e.target.value)}
+            style={styles.textarea}
+            readOnly={useDefaultOrigin}
+            required
+          />
+        </div>
 
-        <textarea
-          placeholder="Delivery Address"
-          value={deliveryAddress}
-          onChange={(e) => setDeliveryAddress(e.target.value)}
-          style={styles.textarea}
-          required
-        />
+        {/* Delivery Method Section */}
+        <div style={styles.deliverySection}>
+          <h4>Delivery Method</h4>
+          <div style={styles.deliveryMethods}>
+            <button
+              type="button"
+              onClick={() => setShowMap(false)}
+              style={!showMap ? styles.activeMethod : styles.inactiveMethod}
+            >
+              WhatsApp Link
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowMap(true)}
+              style={showMap ? styles.activeMethod : styles.inactiveMethod}
+            >
+              Map Location
+            </button>
+          </div>
 
+          {showMap ? (
+            <div style={styles.mapContainer}>
+              <LoadScript googleMapsApiKey="AIzaSyDBz09hJefhlXJUFtOd9p34dSa9aHO0lz4">
+                <GoogleMap
+                  mapContainerStyle={mapContainerStyle}
+                  center={{ lat: 33.8938, lng: 35.5018 }}
+                  zoom={12}
+                  onClick={handleMapClick}
+                >
+                  {deliveryCoords && <Marker position={deliveryCoords} />}
+                </GoogleMap>
+              </LoadScript>
+            </div>
+          ) : (
+            <input
+              type="tel"
+              placeholder="Recipient WhatsApp Number *"
+              value={deliveryPhone}
+              onChange={(e) => setDeliveryPhone(e.target.value)}
+              style={styles.input}
+              required
+            />
+          )}
+        </div>
+
+        {/* Payment Method */}
         <select
           value={paymentMethod}
           onChange={(e) => setPaymentMethod(e.target.value)}
           style={styles.select}
         >
           <option value="cash">Cash</option>
-          <option value="card">Card</option>
+          <option value="wallet">Wallet</option>
         </select>
 
-        <p>Total: ${totalAmount.toFixed(2)}</p>
+        {/* Total Price Display */}
+        <div style={styles.totalSection}>
+          <h3>Total Price: ${((parseFloat(packagePrice) || 0) + predictedPrice).toFixed(2)}</h3>
+          <small>(Package price + Delivery fee)</small>
+        </div>
 
         {error && <p style={styles.error}>{error}</p>}
-        <button type="submit" disabled={isSubmitting} style={styles.submitButton}>
-          {isSubmitting ? 'Submitting...' : 'Create Order'}
-        </button>
+
+        {/* Form Actions */}
+        <div style={styles.buttonGroup}>
+          <button
+            type="button"
+            onClick={() => navigate('/shop-owner-dashboard')}
+            style={styles.cancelButton}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            style={styles.submitButton}
+          >
+            {isSubmitting ? 'Creating...' : 'Create Order'}
+          </button>
+        </div>
       </form>
     </div>
   );
@@ -284,6 +354,17 @@ const styles = {
     cursor: 'pointer',
     fontWeight: 'bold',
   },
+  cancelButton: {
+    padding: '12px',
+    backgroundColor:'red',
+    color: 'white',
+    border: 'none',
+    borderRadius: '5px',
+    fontSize: '16px',
+    cursor: 'pointer',
+    fontWeight: 'bold',
+  },
+  
   error: {
     color: 'red',
     fontSize: '14px',
