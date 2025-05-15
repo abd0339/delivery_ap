@@ -196,4 +196,60 @@ router.get('/current/:driverId', async (req, res) => {
   }
 });
 
+// Accept an order by driver
+router.post('/accept', async (req, res) => {
+  const { orderId, driverId } = req.body;
+
+  if (!orderId || !driverId) {
+    return res.status(400).json({ success: false, message: 'Missing orderId or driverId' });
+  }
+
+  try {
+    const [result] = await pool.query(
+      'UPDATE orders SET driver_id = ?, status = "accepted" WHERE order_id = ? AND status = "pending"',
+      [driverId, orderId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(400).json({ success: false, message: 'Order not found or already accepted' });
+    }
+
+    res.json({ success: true, message: 'Order accepted successfully' });
+
+  } catch (error) {
+    console.error('Accept order error:', error);
+    res.status(500).json({ success: false, message: 'Server error while accepting order' });
+  }
+});
+
+// Get single order by ID
+router.get('/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const [rows] = await pool.query('SELECT * FROM orders WHERE order_id = ?', [id]);
+    if (!rows.length) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+    res.json(rows[0]);
+  } catch (error) {
+    console.error('Fetch order error:', error);
+    res.status(500).json({ message: 'Error fetching order' });
+  }
+});
+
+router.put('/mark-delivered/:orderId', async (req, res) => {
+  const { orderId } = req.params;
+  try {
+    const [update] = await pool.query(
+      'UPDATE orders SET status = ? WHERE order_id = ?',
+      ['delivered', orderId]
+    );
+    res.json({ success: true, message: 'Order marked as delivered' });
+  } catch (err) {
+    console.error('Delivery update failed:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+
 module.exports = router;

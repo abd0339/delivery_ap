@@ -81,6 +81,10 @@ const CreateOrder = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    if (orderType === 'package' && !deliveryCoords) {
+      setError('Please select a delivery location on the map');
+      return;
+    }  
     setIsSubmitting(true);
 
     const orderData = {
@@ -101,6 +105,7 @@ const CreateOrder = () => {
     };
 
     try {
+      console.log('Sending order data:', orderData);
       const response = await axios.post('http://localhost:3001/orders', orderData);
       if (response.data.success) {
         navigate('/shop-owner-dashboard');

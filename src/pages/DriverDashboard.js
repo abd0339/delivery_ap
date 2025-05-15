@@ -7,9 +7,9 @@ const DriverDashboard = () => {
   const [availableOrders, setAvailableOrders] = useState([]);
   const [currentOrders, setCurrentOrders] = useState([]);
   const [balance, setBalance] = useState('$0.00');
-  const [verificationStatus, setVerificationStatus] = useState({ 
-    isVerified: false, 
-    status: 'pending' 
+  const [verificationStatus, setVerificationStatus] = useState({
+    isVerified: false,
+    status: 'pending'
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -25,9 +25,9 @@ const DriverDashboard = () => {
 
       try {
         const [
-          availableOrdersRes, 
-          currentOrdersRes, 
-          walletRes, 
+          availableOrdersRes,
+          currentOrdersRes,
+          walletRes,
           verificationRes
         ] = await Promise.all([
           axios.get('http://localhost:3001/orders/available'),
@@ -62,6 +62,7 @@ const DriverDashboard = () => {
 
   const handleAcceptOrder = async (orderId) => {
     const driverId = localStorage.getItem("driverId");
+    console.log("Accepting Order", { orderId, driverId });
     if (!driverId) {
       setError("Driver not logged in.");
       navigate('/login');
@@ -69,24 +70,27 @@ const DriverDashboard = () => {
     }
 
     try {
-      await axios.post('http://localhost:3001/orders/accept', { 
-        orderId, 
-        driverId 
+      const res = await axios.post('http://localhost:3001/orders/accept', {
+        orderId,
+        driverId
       }, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+
       // Refresh orders after acceptance
       const [available, current] = await Promise.all([
         axios.get('http://localhost:3001/orders/available'),
         axios.get(`http://localhost:3001/orders/current/${driverId}`)
       ]);
-      
+
       setAvailableOrders(available.data);
       setCurrentOrders(current.data);
-      
+      if (res.data.success) {
+        navigate(`/track-order/${orderId}`);
+      }
     } catch (err) {
       console.error('Accept order error:', err);
       setError(err.response.data.message || 'Failed to accept order');
@@ -124,11 +128,11 @@ const DriverDashboard = () => {
             {verificationStatus.isVerified ? (
               <p style={styles.verifiedText}>✅ Verified</p>
             ) : (
-              <>
+                <>
                 <p style={styles.notVerifiedText}>❌ {verificationStatus.status.charAt(0).toUpperCase() + verificationStatus.status.slice(1)}</p>
                 <Link to="/id-verification" style={styles.navLink}>Verify Now</Link>
-              </>
-            )}
+                </>
+              )}
           </div>
         </div>
 
@@ -139,21 +143,21 @@ const DriverDashboard = () => {
             {availableOrders.length === 0 ? (
               <p>No available orders.</p>
             ) : (
-              availableOrders.map((order) => (
-                <div key={order.id} style={styles.orderCard}>
-                  <p><strong>Order #{order.id}</strong></p>
-                  <p>Pickup: {order.pickup_address}</p>
-                  <p>Delivery: {order.delivery_address}</p>
-                  <p>Amount: ${parseFloat(order.total_amount).toFixed(2)}</p>
-                  <button
-                    onClick={() => handleAcceptOrder(order.id)}
-                    style={styles.acceptButton}
-                  >
-                    Accept Order
+                availableOrders.map((order) => (
+                  <div key={order.order_id} style={styles.orderCard}>
+                    <p><strong>Order #{order.order_id}</strong></p>
+                    <p>Pickup: {order.pickup_address}</p>
+                    <p>Delivery: {order.delivery_address}</p>
+                    <p>Amount: ${parseFloat(order.total_amount).toFixed(2)}</p>
+                    <button
+                      onClick={() => handleAcceptOrder(order.order_id)}
+                      style={styles.acceptButton}
+                    >
+                      Accept Order
                   </button>
-                </div>
-              ))
-            )}
+                  </div>
+                ))
+              )}
           </div>
         </div>
 
@@ -163,15 +167,15 @@ const DriverDashboard = () => {
             {currentOrders.length === 0 ? (
               <p>No current orders.</p>
             ) : (
-              currentOrders.map((order) => (
-                <div key={order.id} style={styles.orderCard}>
-                  <p><strong>Order #{order.id}</strong></p>
-                  <p>Pickup: {order.pickup_address}</p>
-                  <p>Delivery: {order.delivery_address}</p>
-                  <p>Status: <span style={styles.status}>{order.status}</span></p>
-                </div>
-              ))
-            )}
+                currentOrders.map((order) => (
+                  <div key={order.order_id} style={styles.orderCard}>
+                    <p><strong>Order #{order.order_id}</strong></p>
+                    <p>Pickup: {order.pickup_address}</p>
+                    <p>Delivery: {order.delivery_address}</p>
+                    <p>Status: <span style={styles.status}>{order.status}</span></p>
+                  </div>
+                ))
+              )}
           </div>
         </div>
       </div>

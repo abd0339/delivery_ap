@@ -1,12 +1,13 @@
 const path = require('path');
 const { spawn } = require('child_process');
+const python = spawn('python', ['path/to/script.py']);
 
 function predictPrice({ type, length, weight, distance }) {
   return new Promise((resolve, reject) => {
     const scriptPath = path.join(__dirname, 'run_prediction.py');
     const modelArgs = [type, length, weight, distance];
 
-    const process = spawn('python3', [scriptPath, ...modelArgs]);
+    const process = spawn('python', [scriptPath, ...modelArgs]);
 
     let output = '';
     process.stdout.on('data', data => output += data.toString());

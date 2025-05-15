@@ -31,6 +31,8 @@ const App = () => {
         <Route path="/withdraw-funds" element={<WithdrawFunds />} />
         <Route path="/order-tracking/:orderId" element={<OrderTracking />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/track-order/:orderId" element={<OrderTracking />} />
+
 
         {/* Driver Routes */}
         <Route path="/driver-dashboard" element={<DriverDashboard />} />

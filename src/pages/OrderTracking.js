@@ -1,85 +1,70 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { io } from 'socket.io-client';
 import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
 import axios from 'axios';
+import 'leaflet/dist/leaflet.css';
 
-// Fix for default marker icons
-delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
   iconUrl: require('leaflet/dist/images/marker-icon.png'),
   shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
 });
 
+const SOCKET_SERVER_URL = 'http://localhost:3001';
+
 const OrderTracking = () => {
   const { orderId } = useParams();
-  const [order, setOrder] = useState({
-    id: orderId,
-    status: '',
-    pickup_address: '',
-    delivery_address: '',
-    driver_location: [51.505, -0.09], // Default location
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [order, setOrder] = useState(null);
+  const [driverLocation, setDriverLocation] = useState(null);
+  const socketRef = useRef(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await axios.get(`http://localhost:3000/orders/${orderId}`);
-        setOrder(response.data);
-      } catch (err) {
-        setError('Failed to fetch order details');
-        console.error('Fetch error:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
+    axios.get(`http://localhost:3001/orders/${orderId}`)
+      .then(res => setOrder(res.data))
+      .catch(() => console.error('Order fetch failed'));
   }, [orderId]);
 
-  if (loading) return <p style={styles.loadingText}>Loading...</p>;
-  if (error) return <p style={styles.errorText}>{error}</p>;
+  useEffect(() => {
+    socketRef.current = io(SOCKET_SERVER_URL);
+
+    socketRef.current.on(`orderLocationUpdate:${orderId}`, data => {
+      setDriverLocation([data.lat, data.lng]);
+    });
+
+    const driverId = localStorage.getItem('driverId');
+    if (driverId) {
+      const watchId = navigator.geolocation.watchPosition(
+        ({ coords }) => {
+          socketRef.current.emit('driverLocation', {
+            orderId,
+            lat: coords.latitude,
+            lng: coords.longitude
+          });
+        },
+        err => console.error(err),
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 3000 }
+      );
+      return () => navigator.geolocation.clearWatch(watchId);
+    }
+
+    return () => socketRef.current.disconnect();
+  }, [orderId]);
 
   return (
-    <div style={styles.container}>
-      <header style={styles.header}>
-        <h1 style={styles.headerTitle}>Order Tracking</h1>
-        <Link to="/shop-owner-dashboard" style={styles.navLink}>Back to Dashboard</Link>
-      </header>
-
-      <div style={styles.content}>
-        <div style={styles.orderDetails}>
-          <h2>Order #{order.id}</h2>
-          <p><strong>Status:</strong> <span style={styles.status}>{order.status}</span></p>
-          <p><strong>Pickup:</strong> {order.pickup_address}</p>
-          <p><strong>Delivery:</strong> {order.delivery_address}</p>
-        </div>
-
-        <div style={styles.mapContainer}>
-          <MapContainer
-            center={order.driver_location}
-            zoom={13}
-            style={styles.map}
-          >
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution='&copy; OpenStreetMap contributors'
-            />
-            <Marker position={order.driver_location}>
-              <Popup>Driver is here!</Popup>
-            </Marker>
-          </MapContainer>
-        </div>
-      </div>
-    </div>
+    <MapContainer center={[33.89, 35.5]} zoom={13} style={{ height: '400px', width: '100%' }}>
+      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+      {driverLocation && (
+        <Marker position={driverLocation}>
+          <Popup>Driver is here!</Popup>
+        </Marker>
+      )}
+    </MapContainer>
   );
 };
 
-// CSS Styles (move to a separate CSS file or use CSS-in-JS)
+
 const styles = {
   container: {
     minHeight: '100vh',
