@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { io } from 'socket.io-client';
 import L from 'leaflet';
@@ -14,11 +14,87 @@ L.Icon.Default.mergeOptions({
 
 const SOCKET_SERVER_URL = 'http://localhost:3001';
 
+const ChatBox = ({ orderId, userType }) => {
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const socketRef = useRef(null);
+  const bottomRef = useRef(null);
+
+  useEffect(() => {
+    socketRef.current = io(SOCKET_SERVER_URL);
+    socketRef.current.emit('joinRoom', { orderId });
+
+    socketRef.current.on('chatMessage', (msg) => {
+      setMessages((prev) => [...prev, msg]);
+    });
+
+    return () => {
+      socketRef.current.disconnect();
+    };
+  }, [orderId]);
+
+  useEffect(() => {
+    bottomRef.current.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleSend = () => {
+    if (!newMessage.trim()) return;
+    const msgData = {
+      orderId,
+      sender: userType,
+      message: newMessage
+    };
+    socketRef.current.emit('chatMessage', msgData);
+    setNewMessage('');
+  };
+
+  return (
+    <div style={chatStyles.chatContainer}>
+      <h3 style={chatStyles.chatTitle}>Order Chat</h3>
+      <div style={chatStyles.chatMessages}>
+        {messages.map((msg, i) => (
+          <div 
+            key={i} 
+            style={msg.sender === userType ? chatStyles.myMessage : chatStyles.theirMessage}
+          >
+            {msg.message}
+          </div>
+        ))}
+        <div ref={bottomRef} />
+      </div>
+      <div style={chatStyles.inputRow}>
+        <input
+          type="text"
+          value={newMessage}
+          onChange={(e) => setNewMessage(e.target.value)}
+          style={chatStyles.input}
+          placeholder="Type a message..."
+        />
+        <button onClick={handleSend} style={chatStyles.sendButton}>
+          Send
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const OrderTracking = () => {
   const { orderId } = useParams();
+  const navigate = useNavigate();
   const [order, setOrder] = useState(null);
   const [driverLocation, setDriverLocation] = useState(null);
   const socketRef = useRef(null);
+  const driverId = localStorage.getItem('driverId');
+
+  const handleMarkDelivered = async () => {
+    try {
+      await axios.put(`http://localhost:3001/orders/mark-delivered/${orderId}`);
+      alert('Order marked as delivered!');
+      navigate('/driver-dashboard');
+    } catch (err) {
+      console.error('Failed to mark delivered:', err);
+    }
+  };
 
   useEffect(() => {
     axios.get(`http://localhost:3001/orders/${orderId}`)
@@ -33,7 +109,6 @@ const OrderTracking = () => {
       setDriverLocation([data.lat, data.lng]);
     });
 
-    const driverId = localStorage.getItem('driverId');
     if (driverId) {
       const watchId = navigator.geolocation.watchPosition(
         ({ coords }) => {
@@ -50,81 +125,106 @@ const OrderTracking = () => {
     }
 
     return () => socketRef.current.disconnect();
-  }, [orderId]);
+  }, [orderId, driverId]);
 
   return (
-    <MapContainer center={[33.89, 35.5]} zoom={13} style={{ height: '400px', width: '100%' }}>
-      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-      {driverLocation && (
-        <Marker position={driverLocation}>
-          <Popup>Driver is here!</Popup>
-        </Marker>
+    <div style={styles.container}>
+      <MapContainer center={[33.89, 35.5]} zoom={13} style={styles.map}>
+        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        {driverLocation && (
+          <Marker position={driverLocation}>
+            <Popup>Driver is here!</Popup>
+          </Marker>
+        )}
+      </MapContainer>
+
+      <ChatBox orderId={orderId} userType={driverId ? 'driver' : 'customer'} />
+
+      {driverId && (
+        <button onClick={handleMarkDelivered} style={styles.deliverButton}>
+          Mark as Delivered
+        </button>
       )}
-    </MapContainer>
+    </div>
   );
 };
-
 
 const styles = {
   container: {
     minHeight: '100vh',
     backgroundColor: '#f0f2f5',
     fontFamily: 'Arial, sans-serif',
-  },
-  header: {
-    backgroundColor: '#4CAF50',
-    color: 'white',
-    padding: '20px',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    margin: 0,
-  },
-  navLink: {
-    color: 'white',
-    textDecoration: 'none',
-    fontSize: '16px',
-  },
-  content: {
-    padding: '30px',
-    maxWidth: '1200px',
-    margin: '0 auto',
-  },
-  orderDetails: {
-    backgroundColor: 'white',
-    padding: '20px',
-    borderRadius: '10px',
-    boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-    marginBottom: '30px',
-  },
-  status: {
-    color: '#4CAF50',
-    fontWeight: 'bold',
-  },
-  mapContainer: {
-    backgroundColor: 'white',
-    padding: '20px',
-    borderRadius: '10px',
-    boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+    padding: '20px'
   },
   map: {
     height: '400px',
     width: '100%',
     borderRadius: '5px',
+    marginBottom: '20px'
   },
-  loadingText: {
-    textAlign: 'center',
-    marginTop: '50px',
-    fontSize: '18px',
+  deliverButton: {
+    padding: '12px 20px',
+    backgroundColor: '#4CAF50',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '16px',
+    marginTop: '20px'
+  }
+};
+
+const chatStyles = {
+  chatContainer: {
+    marginTop: '30px',
+    padding: '20px',
+    backgroundColor: '#fff',
+    borderRadius: '10px',
+    boxShadow: '0 0 8px rgba(0,0,0,0.1)'
   },
-  errorText: {
-    textAlign: 'center',
-    marginTop: '50px',
-    color: 'red',
-    fontSize: '18px',
+  chatTitle: {
+    marginBottom: '10px'
   },
+  chatMessages: {
+    height: '200px',
+    overflowY: 'auto',
+    padding: '10px',
+    backgroundColor: '#f9f9f9',
+    borderRadius: '8px',
+    marginBottom: '10px'
+  },
+  inputRow: {
+    display: 'flex',
+    gap: '10px'
+  },
+  input: {
+    flex: 1,
+    padding: '10px',
+    borderRadius: '5px',
+    border: '1px solid #ccc'
+  },
+  sendButton: {
+    padding: '10px 15px',
+    backgroundColor: '#4CAF50',
+    color: 'white',
+    border: 'none',
+    borderRadius: '5px',
+    cursor: 'pointer'
+  },
+  myMessage: {
+    textAlign: 'right',
+    backgroundColor: '#e0f7fa',
+    marginBottom: '5px',
+    padding: '5px 10px',
+    borderRadius: '8px'
+  },
+  theirMessage: {
+    textAlign: 'left',
+    backgroundColor: '#eeeeee',
+    marginBottom: '5px',
+    padding: '5px 10px',
+    borderRadius: '8px'
+  }
 };
 
 export default OrderTracking;

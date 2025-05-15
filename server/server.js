@@ -38,12 +38,23 @@ if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
 
 // 🔥 Real-time driver tracking socket logic
 io.on('connection', (socket) => {
-  console.log('🚗 Client connected:', socket.id);
+  console.log('📡 New client connected:', socket.id);
 
-  socket.on('driverLocation', (data) => {
-    // data = { orderId, lat, lng }
-    console.log(`📍 Driver location update for Order #${data.orderId}:`, data);
-    io.emit(`orderLocationUpdate:${data.orderId}`, data); // 🔄 Broadcast location to clients
+  // --- 1. JOIN ROOM BASED ON ORDER ID ---
+  socket.on('joinRoom', ({ orderId }) => {
+    socket.join(orderId);
+    console.log(`🟢 Socket ${socket.id} joined room: ${orderId}`);
+  });
+
+  // --- 2. HANDLE INCOMING CHAT MESSAGE ---
+  socket.on('chatMessage', ({ orderId, sender, message }) => {
+    console.log(`💬 Message for Order ${orderId} from ${sender}: ${message}`);
+    // Broadcast message to all clients in the same order chat room
+    io.to(orderId).emit('chatMessage', {
+      sender,
+      message,
+      timestamp: new Date().toISOString()
+    });
   });
 
   socket.on('disconnect', () => {
