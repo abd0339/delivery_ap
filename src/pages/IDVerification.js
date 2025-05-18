@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios'; // For making API requests
+import axios from 'axios';
 
 const IDVerification = () => {
   const navigate = useNavigate();
@@ -9,11 +9,13 @@ const IDVerification = () => {
   const [isVerified, setIsVerified] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isHoveringSubmit, setIsHoveringSubmit] = useState(false);
+  const [isHoveringBack, setIsHoveringBack] = useState(false);
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      if (file.size > 5 * 1024 * 1024) {
         setError('File size exceeds 5MB limit');
         return;
       }
@@ -37,12 +39,10 @@ const IDVerification = () => {
     setError('');
 
     try {
-      // Create a FormData object for file upload
       const formData = new FormData();
       formData.append('documentType', documentType);
       formData.append('file', selectedFile);
 
-      // Submit the document for verification
       const response = await axios.post('http://localhost:3000/verify-id', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
@@ -62,65 +62,119 @@ const IDVerification = () => {
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.formContainer}>
+    <div style={styles.pageContainer}>
+      <div style={styles.cardContainer}>
         {/* Back Link */}
-        <div style={styles.backLink}>
-          <Link to="/driver-dashboard" style={styles.link}>← Back to Dashboard</Link>
-        </div>
+        <Link 
+          to="/driver-dashboard" 
+          style={isHoveringBack ? styles.backLinkHover : styles.backLink}
+          onMouseEnter={() => setIsHoveringBack(true)}
+          onMouseLeave={() => setIsHoveringBack(false)}
+        >
+          <span style={styles.backArrow}>←</span> Back to Dashboard
+          <span style={isHoveringBack ? styles.linkHoverEffect : {}}></span>
+        </Link>
 
-        <h2 style={styles.title}>ID Verification</h2>
+        {/* Header */}
+        <div style={styles.header}>
+          <h2 style={styles.title}>ID Verification</h2>
+          <div style={styles.headerDecoration}></div>
+        </div>
         
-        {/* Status Message */}
+        {/* Status Messages */}
         {isVerified && (
-          <p style={styles.successMessage}>✅ Document verified successfully!</p>
+          <div style={styles.successMessage}>
+            <span style={styles.successIcon}>✓</span>
+            Document verified successfully!
+          </div>
         )}
 
-        {/* Error Message */}
-        {error && <p style={styles.error}>{error}</p>}
+        {error && (
+          <div style={styles.error}>
+            <span style={styles.errorIcon}>!</span>
+            {error}
+          </div>
+        )}
 
         {/* Verification Form */}
         <form onSubmit={handleSubmit} style={styles.form}>
           {/* Document Type */}
           <div style={styles.formGroup}>
             <label style={styles.label}>Document Type</label>
-            <select
-              value={documentType}
-              onChange={(e) => setDocumentType(e.target.value)}
-              style={styles.select}
-            >
-              <option value="id_card">National ID Card</option>
-              <option value="passport">Passport</option>
-            </select>
+            <div style={styles.selectContainer}>
+              <select
+                value={documentType}
+                onChange={(e) => setDocumentType(e.target.value)}
+                style={styles.select}
+                disabled={isVerified}
+              >
+                <option value="id_card">National ID Card</option>
+                <option value="passport">Passport</option>
+              </select>
+              <span style={styles.selectArrow}>▼</span>
+            </div>
           </div>
 
           {/* File Upload */}
           <div style={styles.formGroup}>
             <label style={styles.label}>Upload Document</label>
-            <div style={styles.fileUpload}>
+            <label 
+              htmlFor="file-upload" 
+              style={selectedFile ? styles.fileUploadActive : styles.fileUpload}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = selectedFile ? '#f0f8ff' : 'white'}
+            >
               <input
+                id="file-upload"
                 type="file"
                 onChange={handleFileUpload}
                 style={styles.fileInput}
                 accept=".jpg,.jpeg,.png,.pdf"
+                disabled={isVerified}
               />
               <div style={styles.filePreview}>
                 {selectedFile ? (
-                  <p style={styles.fileName}>{selectedFile.name}</p>
+                  <>
+                    <span style={styles.fileIcon}>📄</span>
+                    <p style={styles.fileName}>{selectedFile.name}</p>
+                    <p style={styles.fileSize}>{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</p>
+                  </>
                 ) : (
-                  <p style={styles.placeholder}>Click to upload (JPG, PNG, PDF - max 5MB)</p>
+                  <>
+                    <span style={styles.uploadIcon}>↑</span>
+                    <p style={styles.placeholder}>Click to upload document</p>
+                    <p style={styles.fileTypes}>(JPG, PNG, PDF - max 5MB)</p>
+                  </>
                 )}
               </div>
-            </div>
+            </label>
           </div>
 
           {/* Submit Button */}
           <button 
             type="submit" 
-            style={styles.submitButton}
+            style={
+              isVerified ? styles.verifiedButton : 
+              isSubmitting ? styles.submittingButton : 
+              isHoveringSubmit ? styles.submitButtonHover : styles.submitButton
+            }
             disabled={isSubmitting || isVerified}
+            onMouseEnter={() => setIsHoveringSubmit(true)}
+            onMouseLeave={() => setIsHoveringSubmit(false)}
           >
-            {isSubmitting ? 'Submitting...' : (isVerified ? 'Verified!' : 'Submit for Verification')}
+            {isSubmitting ? (
+              <>
+                Submitting...
+                <span style={styles.spinner}></span>
+              </>
+            ) : isVerified ? (
+              'Verified!'
+            ) : (
+              <>
+                Submit for Verification
+                {isHoveringSubmit && <span style={styles.buttonHoverEffect}></span>}
+              </>
+            )}
           </button>
         </form>
       </div>
@@ -128,36 +182,96 @@ const IDVerification = () => {
   );
 };
 
-// Inline CSS Styles (consistent with previous pages)
 const styles = {
-  container: {
+  pageContainer: {
     display: 'flex',
     justifyContent: 'center',
+    alignItems: 'center',
     minHeight: '100vh',
-    backgroundColor: '#f0f2f5',
+    background: 'linear-gradient(135deg, #f5f7fa 0%, #e4e8ed 100%)',
     padding: '20px',
-    fontFamily: 'Arial, sans-serif',
+    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif",
   },
-  formContainer: {
+  cardContainer: {
     backgroundColor: 'white',
-    padding: '30px',
-    borderRadius: '10px',
-    boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+    padding: '40px',
+    borderRadius: '16px',
+    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.08)',
     width: '100%',
     maxWidth: '600px',
+    position: 'relative',
+    overflow: 'hidden',
+    transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+    ':hover': {
+      transform: 'translateY(-5px)',
+      boxShadow: '0 15px 35px rgba(0, 0, 0, 0.12)',
+    }
   },
-  backLink: {
-    marginBottom: '20px',
-  },
-  link: {
-    color: '#4CAF50',
-    textDecoration: 'none',
-    fontSize: '14px',
-  },
-  title: {
-    color: '#333',
+  header: {
+    position: 'relative',
     marginBottom: '30px',
     textAlign: 'center',
+  },
+  title: {
+    color: '#2c3e50',
+    fontSize: '28px',
+    fontWeight: '700',
+    marginBottom: '15px',
+    background: 'linear-gradient(to right, #3498db, #2c3e50)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+  },
+  headerDecoration: {
+    height: '4px',
+    width: '80px',
+    background: 'linear-gradient(to right, #3498db, #2c3e50)',
+    margin: '0 auto',
+    borderRadius: '2px',
+  },
+  backLink: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    color: '#3498db',
+    textDecoration: 'none',
+    fontSize: '15px',
+    fontWeight: '500',
+    marginBottom: '25px',
+    transition: 'all 0.3s ease',
+    position: 'relative',
+    overflow: 'hidden',
+    padding: '8px 12px',
+    borderRadius: '8px',
+  },
+  backLinkHover: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    color: '#3498db',
+    textDecoration: 'none',
+    fontSize: '15px',
+    fontWeight: '500',
+    marginBottom: '25px',
+    transition: 'all 0.3s ease',
+    position: 'relative',
+    overflow: 'hidden',
+    padding: '8px 12px',
+    borderRadius: '8px',
+    backgroundColor: '#f0f8ff',
+  },
+  backArrow: {
+    marginRight: '8px',
+    fontSize: '18px',
+    transition: 'transform 0.3s ease',
+  },
+  linkHoverEffect: {
+    position: 'absolute',
+    bottom: '0',
+    left: '0',
+    width: '100%',
+    height: '2px',
+    backgroundColor: '#3498db',
+    transform: 'scaleX(0)',
+    transformOrigin: 'right',
+    animation: 'linkUnderline 0.3s ease forwards',
   },
   form: {
     display: 'flex',
@@ -167,61 +281,266 @@ const styles = {
   formGroup: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '10px',
+    gap: '12px',
   },
   label: {
-    color: '#666',
-    fontSize: '14px',
+    color: '#4a5568',
+    fontSize: '15px',
+    fontWeight: '500',
+  },
+  selectContainer: {
+    position: 'relative',
   },
   select: {
-    padding: '12px',
-    border: '1px solid #ddd',
-    borderRadius: '5px',
-    fontSize: '16px',
-    backgroundColor: 'white',
+    width: '100%',
+    padding: '14px 16px',
+    border: '1px solid #e2e8f0',
+    borderRadius: '10px',
+    fontSize: '15px',
+    backgroundColor: '#f8fafc',
+    appearance: 'none',
+    transition: 'all 0.3s ease',
+    cursor: 'pointer',
+    ':focus': {
+      borderColor: '#3498db',
+      boxShadow: '0 0 0 3px rgba(52, 152, 219, 0.2)',
+      outline: 'none',
+    },
+    ':hover': {
+      borderColor: '#cbd5e0',
+    }
+  },
+  selectArrow: {
+    position: 'absolute',
+    right: '16px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    pointerEvents: 'none',
+    color: '#718096',
   },
   fileUpload: {
-    border: '2px dashed #ddd',
-    borderRadius: '5px',
-    padding: '20px',
+    border: '2px dashed #e2e8f0',
+    borderRadius: '12px',
+    padding: '30px 20px',
     textAlign: 'center',
     cursor: 'pointer',
+    transition: 'all 0.3s ease',
+    backgroundColor: 'white',
+    position: 'relative',
+    overflow: 'hidden',
+    ':hover': {
+      borderColor: '#3498db',
+      backgroundColor: '#f8fafc',
+    }
+  },
+  fileUploadActive: {
+    border: '2px dashed #3498db',
+    borderRadius: '12px',
+    padding: '30px 20px',
+    textAlign: 'center',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease',
+    backgroundColor: '#f0f8ff',
+    position: 'relative',
+    overflow: 'hidden',
   },
   fileInput: {
     display: 'none',
   },
   filePreview: {
-    marginTop: '10px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '10px',
   },
-  fileName: {
-    color: '#4CAF50',
-    fontWeight: 'bold',
+  uploadIcon: {
+    fontSize: '32px',
+    color: '#3498db',
+    marginBottom: '10px',
+    transition: 'transform 0.3s ease',
+  },
+  fileIcon: {
+    fontSize: '32px',
+    color: '#3498db',
+    marginBottom: '10px',
   },
   placeholder: {
-    color: '#999',
+    color: '#4a5568',
+    fontWeight: '500',
+    fontSize: '16px',
+    margin: '0',
+  },
+  fileTypes: {
+    color: '#718096',
+    fontSize: '14px',
+    margin: '0',
+  },
+  fileName: {
+    color: '#2d3748',
+    fontWeight: '600',
+    fontSize: '15px',
+    margin: '0',
+    wordBreak: 'break-all',
+    textAlign: 'center',
+  },
+  fileSize: {
+    color: '#718096',
+    fontSize: '13px',
+    margin: '0',
   },
   submitButton: {
-    backgroundColor: '#4CAF50',
+    position: 'relative',
+    backgroundColor: '#3498db',
     color: 'white',
     border: 'none',
-    padding: '15px',
-    borderRadius: '5px',
+    padding: '16px',
+    borderRadius: '10px',
     fontSize: '16px',
+    fontWeight: '600',
     cursor: 'pointer',
-    marginTop: '20px',
-    opacity: (props) => (props.disabled ? 0.7 : 1),
-    pointerEvents: (props) => (props.disabled ? 'none' : 'auto'),
+    transition: 'all 0.3s ease',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '10px',
+    overflow: 'hidden',
+    boxShadow: '0 4px 6px rgba(52, 152, 219, 0.3)',
+    ':hover': {
+      backgroundColor: '#2980b9',
+      transform: 'translateY(-2px)',
+      boxShadow: '0 6px 12px rgba(52, 152, 219, 0.4)',
+    },
+    ':active': {
+      transform: 'translateY(0)',
+    }
+  },
+  submitButtonHover: {
+    position: 'relative',
+    backgroundColor: '#3498db',
+    color: 'white',
+    border: 'none',
+    padding: '16px',
+    borderRadius: '10px',
+    fontSize: '16px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '10px',
+    overflow: 'hidden',
+    boxShadow: '0 4px 6px rgba(52, 152, 219, 0.3)',
+    transform: 'translateY(-2px)',
+    backgroundColor: '#2980b9',
+    boxShadow: '0 6px 12px rgba(52, 152, 219, 0.4)',
+  },
+  submittingButton: {
+    backgroundColor: '#a0aec0',
+    color: 'white',
+    border: 'none',
+    padding: '16px',
+    borderRadius: '10px',
+    fontSize: '16px',
+    fontWeight: '600',
+    cursor: 'not-allowed',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '10px',
+  },
+  verifiedButton: {
+    backgroundColor: '#38a169',
+    color: 'white',
+    border: 'none',
+    padding: '16px',
+    borderRadius: '10px',
+    fontSize: '16px',
+    fontWeight: '600',
+    cursor: 'default',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '10px',
+    boxShadow: '0 4px 6px rgba(56, 161, 105, 0.3)',
+  },
+  buttonHoverEffect: {
+    position: 'absolute',
+    top: '0',
+    left: '0',
+    width: '100%',
+    height: '100%',
+    background: 'linear-gradient(90deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0.1) 100%)',
+    animation: 'shine 1.5s infinite',
+  },
+  spinner: {
+    width: '18px',
+    height: '18px',
+    border: '3px solid rgba(255,255,255,0.3)',
+    borderRadius: '50%',
+    borderTopColor: 'white',
+    animation: 'spin 1s linear infinite',
   },
   error: {
-    color: '#ff4444',
-    textAlign: 'center',
-    margin: '10px 0',
+    backgroundColor: '#fff5f5',
+    color: '#e53e3e',
+    padding: '15px',
+    borderRadius: '8px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    fontSize: '15px',
+    fontWeight: '500',
+    borderLeft: '4px solid #e53e3e',
   },
-  successMessage: {
-    color: '#4CAF50',
-    textAlign: 'center',
+  errorIcon: {
+    backgroundColor: '#e53e3e',
+    color: 'white',
+    width: '22px',
+    height: '22px',
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '14px',
     fontWeight: 'bold',
   },
+  successMessage: {
+    backgroundColor: '#f0fff4',
+    color: '#38a169',
+    padding: '15px',
+    borderRadius: '8px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    fontSize: '15px',
+    fontWeight: '500',
+    borderLeft: '4px solid #38a169',
+  },
+  successIcon: {
+    backgroundColor: '#38a169',
+    color: 'white',
+    width: '22px',
+    height: '22px',
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '14px',
+    fontWeight: 'bold',
+  },
+  '@keyframes spin': {
+    '0%': { transform: 'rotate(0deg)' },
+    '100%': { transform: 'rotate(360deg)' }
+  },
+  '@keyframes shine': {
+    '0%': { transform: 'translateX(-100%)' },
+    '100%': { transform: 'translateX(100%)' }
+  },
+  '@keyframes linkUnderline': {
+    '0%': { transform: 'scaleX(0)' },
+    '100%': { transform: 'scaleX(1)' }
+  }
 };
 
 export default IDVerification;
