@@ -28,7 +28,7 @@ router.post('/', async (req, res) => {
     let distance = 0;
     if (orderType === 'package') {
       try {
-        distance = await getDistance(originAddress, 
+        distance = await getDistance(originAddress,
           typeof deliveryInfo === 'string' ? deliveryInfo : `${deliveryInfo.lat},${deliveryInfo.lng}`
         ) || 0;
       } catch (distanceError) {
@@ -60,11 +60,11 @@ router.post('/', async (req, res) => {
         'SELECT balance FROM wallets WHERE user_id = ? AND user_type = "customer"',
         [customerId]
       );
-      
+
       if (!wallet.length || wallet[0].balance < totalAmount) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'Insufficient wallet balance' 
+        return res.status(400).json({
+          success: false,
+          message: 'Insufficient wallet balance'
         });
       }
     }
@@ -90,18 +90,18 @@ router.post('/', async (req, res) => {
           price
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
-        customerId,
-        orderType,
-        originAddress,
-        JSON.stringify(deliveryInfo),
-        paymentMethod,
-        totalAmount,
-        predictedPrice,
-        serialNumber || null,
-        orderType === 'package' ? length : null,
-        orderType === 'package' ? weight : null,
-        packagePrice
-      ]);
+          customerId,
+          orderType,
+          originAddress,
+          JSON.stringify(deliveryInfo),
+          paymentMethod,
+          totalAmount,
+          predictedPrice,
+          serialNumber || null,
+          orderType === 'package' ? length : null,
+          orderType === 'package' ? weight : null,
+          packagePrice
+        ]);
 
       // Update wallet if using wallet payment
       if (paymentMethod === 'wallet') {
@@ -129,13 +129,44 @@ router.post('/', async (req, res) => {
       }
 
       await connection.commit();
-      
-      res.json({ 
-        success: true, 
+
+      let assignedDriver = null;
+
+      // Auto-assign if it's a package and deliveryInfo is location
+      if (orderType === 'package' && typeof deliveryInfo !== 'string') {
+        const autoAssignDriver = require('../utils/autoAssignDriver');
+        assignedDriver = await autoAssignDriver({
+          originAddress,
+          length,
+          weight,
+          orderType
+        });
+
+        // If a driver is found, update the order in DB
+        if (assignedDriver.driverId) {
+          await pool.query(
+            'UPDATE orders SET driver_id = ?, status = "accepted" WHERE order_id = ?',
+            [assignedDriver.driverId, orderResult.insertId]
+          );
+          const io = req.app.get('io');
+          io.to(`driver:${assignedDriver.driverId}`).emit('newAssignedOrder', {
+            orderId: orderResult.insertId,
+            origin: originAddress,
+            destination: deliveryInfo,
+            total: totalAmount
+          });
+        }
+      }
+
+      res.json({
+        success: true,
         orderId: orderResult.insertId,
         totalAmount,
-        predictedPrice
+        predictedPrice,
+        autoAssignedTo: assignedDriver.driverId || null
       });
+
+
 
     } catch (transactionError) {
       await connection.rollback();
@@ -146,9 +177,9 @@ router.post('/', async (req, res) => {
 
   } catch (error) {
     console.error('Order creation failed:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: error.message || 'Failed to create order' 
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to create order'
     });
   }
 });
@@ -199,6 +230,8 @@ router.get('/current/:driverId', async (req, res) => {
 // Accept an order by driver
 router.post('/accept', async (req, res) => {
   const { orderId, driverId } = req.body;
+  io.to(`order-${orderId}`).emit('orderAccepted', { orderId });
+
 
   if (!orderId || !driverId) {
     return res.status(400).json({ success: false, message: 'Missing orderId or driverId' });

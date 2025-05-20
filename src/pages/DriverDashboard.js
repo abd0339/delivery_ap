@@ -1,20 +1,48 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { io } from 'socket.io-client';/* live location*/
+import { toast, ToastContainer } from 'react-toastify';/*for notification sound*/
+import 'react-toastify/dist/ReactToastify.css';
 
+
+const notificationSound = new Audio('/notification.mp3'); // put notification.mp3 in public folder
 const DriverDashboard = () => {
   const navigate = useNavigate();
   const [availableOrders, setAvailableOrders] = useState([]);
   const [currentOrders, setCurrentOrders] = useState([]);
   const [balance, setBalance] = useState('$0.00');
-  const [verificationStatus, setVerificationStatus] = useState({ 
-    isVerified: false, 
-    status: 'pending' 
+  const [verificationStatus, setVerificationStatus] = useState({
+    isVerified: false,
+    status: 'pending'
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
+    const socket = io('http://localhost:3001');
+    const driverId = localStorage.getItem("driverId");
+    socket.emit('registerDriver', driverId);
+
+    socket.on('newAssignedOrder', (data) => {
+      toast.success(`📦 New Order Assigned! Order #${data.orderId}`, {
+        position: 'top-right',
+        autoClose: 5000,
+        pauseOnHover: true,
+        draggable: true
+      });
+    
+      notificationSound.play();
+    
+      // Optional: redirect after few seconds
+      setTimeout(() => {
+        navigate(`/track-order/${data.orderId}`);
+      }, 3000);
+    });
+    
+
+    return () => socket.disconnect();
+
     const fetchData = async () => {
       const driverId = localStorage.getItem("driverId");
       if (!driverId) {
@@ -25,9 +53,9 @@ const DriverDashboard = () => {
 
       try {
         const [
-          availableOrdersRes, 
-          currentOrdersRes, 
-          walletRes, 
+          availableOrdersRes,
+          currentOrdersRes,
+          walletRes,
           verificationRes
         ] = await Promise.all([
           axios.get('http://localhost:3001/orders/available'),
@@ -62,6 +90,7 @@ const DriverDashboard = () => {
 
   const handleAcceptOrder = async (orderId) => {
     const driverId = localStorage.getItem("driverId");
+    console.log("Accepting Order", { orderId, driverId });
     if (!driverId) {
       setError("Driver not logged in.");
       navigate('/login');
@@ -69,24 +98,26 @@ const DriverDashboard = () => {
     }
 
     try {
-      await axios.post('http://localhost:3001/orders/accept', { 
-        orderId, 
-        driverId 
+      const res = await axios.post('http://localhost:3001/orders/accept', {
+        orderId,
+        driverId
       }, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
       // Refresh orders after acceptance
       const [available, current] = await Promise.all([
         axios.get('http://localhost:3001/orders/available'),
         axios.get(`http://localhost:3001/orders/current/${driverId}`)
       ]);
-      
+
       setAvailableOrders(available.data);
       setCurrentOrders(current.data);
-      
+      if (res.data.success) {
+        navigate(`/track-order/${orderId}`);
+      }
     } catch (err) {
       console.error('Accept order error:', err);
       setError(err.response.data.message || 'Failed to accept order');
@@ -136,7 +167,7 @@ const DriverDashboard = () => {
             {verificationStatus.isVerified ? (
               <p style={styles.verifiedText}>Verified</p>
             ) : (
-              <>
+                <>
                 <p style={styles.notVerifiedText}>
                   {verificationStatus.status.charAt(0).toUpperCase() + verificationStatus.status.slice(1)}
                 </p>
@@ -144,8 +175,8 @@ const DriverDashboard = () => {
                   Verify Now
                   <span style={styles.linkArrow}>→</span>
                 </Link>
-              </>
-            )}
+                </>
+              )}
           </div>
         </div>
 
@@ -158,31 +189,31 @@ const DriverDashboard = () => {
                 <p>No available orders at the moment</p>
               </div>
             ) : (
-              availableOrders.map((order) => (
-                <div key={order.id} style={styles.orderCard}>
-                  <div style={styles.orderHeader}>
-                    <span style={styles.orderNumber}>Order #{order.id}</span>
-                    <span style={styles.orderAmount}>${parseFloat(order.total_amount).toFixed(2)}</span>
-                  </div>
-                  <div style={styles.orderDetails}>
-                    <div style={styles.detailItem}>
-                      <span style={styles.detailLabel}>Pickup:</span>
-                      <span>{order.pickup_address}</span>
+                availableOrders.map((order) => (
+                  <div key={order.order_id} style={styles.orderCard}>
+                    <div style={styles.orderHeader}>
+                      <span style={styles.orderNumber}>Order #{order.order_id}</span>
+                      <span style={styles.orderAmount}>${parseFloat(order.total_amount).toFixed(2)}</span>
                     </div>
-                    <div style={styles.detailItem}>
-                      <span style={styles.detailLabel}>Delivery:</span>
-                      <span>{order.delivery_address}</span>
+                    <div style={styles.orderDetails}>
+                      <div style={styles.detailItem}>
+                        <span style={styles.detailLabel}>Pickup:</span>
+                        <span>{order.pickup_address}</span>
+                      </div>
+                      <div style={styles.detailItem}>
+                        <span style={styles.detailLabel}>Delivery:</span>
+                        <span>{order.delivery_address}</span>
+                      </div>
                     </div>
-                  </div>
-                  <button
-                    onClick={() => handleAcceptOrder(order.id)}
-                    style={styles.acceptButton}
-                  >
-                    Accept Order
+                    <button
+                      onClick={() => handleAcceptOrder(order.order_id)}
+                      style={styles.acceptButton}
+                    >
+                      Accept Order
                   </button>
-                </div>
-              ))
-            )}
+                  </div>
+                ))
+              )}
           </div>
         </div>
 
@@ -195,39 +226,40 @@ const DriverDashboard = () => {
                 <p>You don't have any active orders</p>
               </div>
             ) : (
-              currentOrders.map((order) => (
-                <div key={order.id} style={styles.orderCard}>
-                  <div style={styles.orderHeader}>
-                    <span style={styles.orderNumber}>Order #{order.id}</span>
-                    <span style={styles.orderStatus} data-status={order.status}>
-                      {order.status}
-                    </span>
-                  </div>
-                  <div style={styles.orderDetails}>
-                    <div style={styles.detailItem}>
-                      <span style={styles.detailLabel}>Pickup:</span>
-                      <span>{order.pickup_address}</span>
+                currentOrders.map((order) => (
+                  <div key={order.order_id} style={styles.orderCard}>
+                    <div style={styles.orderHeader}>
+                      <span style={styles.orderNumber}>Order #{order.order_id}</span>
+                      <span style={styles.orderStatus} data-status={order.status}>
+                        {order.status}
+                      </span>
                     </div>
-                    <div style={styles.detailItem}>
-                      <span style={styles.detailLabel}>Delivery:</span>
-                      <span>{order.delivery_address}</span>
+                    <div style={styles.orderDetails}>
+                      <div style={styles.detailItem}>
+                        <span style={styles.detailLabel}>Pickup:</span>
+                        <span>{order.pickup_address}</span>
+                      </div>
+                      <div style={styles.detailItem}>
+                        <span style={styles.detailLabel}>Delivery:</span>
+                        <span>{order.delivery_address}</span>
+                      </div>
+                    </div>
+                    <div style={styles.progressBar}>
+                      <div
+                        style={{
+                          ...styles.progressFill,
+                          width: order.status === 'delivered' ? '100%' :
+                            order.status === 'picked-up' ? '66%' : '33%'
+                        }}
+                      ></div>
                     </div>
                   </div>
-                  <div style={styles.progressBar}>
-                    <div 
-                      style={{
-                        ...styles.progressFill,
-                        width: order.status === 'delivered' ? '100%' : 
-                              order.status === 'picked-up' ? '66%' : '33%'
-                      }}
-                    ></div>
-                  </div>
-                </div>
-              ))
-            )}
+                ))
+              )}
           </div>
         </div>
       </div>
+      <ToastContainer />
     </div>
   );
 };

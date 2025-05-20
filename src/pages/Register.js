@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
 
 axios.defaults.baseURL = 'http://localhost:3001';
 axios.defaults.withCredentials = true;
 
 const Register = () => {
   const navigate = useNavigate();
-
   const [userType, setUserType] = useState('customer');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [shopName, setShopName] = useState('');
-  const [shopAddress, setShopAddress] = useState('');
+  const [shopCoords, setShopCoords] = useState(null);
   const [vehicleType, setVehicleType] = useState('');
   const [username, setUsername] = useState('');
   const [idDocument, setIdDocument] = useState(null);
@@ -26,7 +26,7 @@ const Register = () => {
     }
 
     if (userType === 'customer') {
-      if (!phoneNumber || !shopName || !shopAddress || !username) {
+      if (!phoneNumber || !shopName || !shopCoords || !username) {
         return 'Please complete all customer fields.';
       }
     } else if (userType === 'driver') {
@@ -62,7 +62,7 @@ const Register = () => {
           password,
           phoneNumber,
           shopName,
-          shopAddress,
+          shopCoords: JSON.stringify(shopCoords),
           username,
         });
       } else if (userType === 'driver') {
@@ -107,71 +107,91 @@ const Register = () => {
 
   const renderSharedFields = () => (
     <>
-      <input
-        type="tel"
-        placeholder="Phone Number"
-        value={phoneNumber}
-        onChange={(e) => setPhoneNumber(e.target.value)}
-        style={styles.input}
-        required
-      />
-      <input
-        type="text"
-        placeholder="Username"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-        style={styles.input}
-        required
-      />
+    <input
+      type="tel"
+      placeholder="Phone Number"
+      value={phoneNumber}
+      onChange={(e) => setPhoneNumber(e.target.value)}
+      style={styles.input}
+      required
+    />
+    <input
+      type="text"
+      placeholder="Username"
+      value={username}
+      onChange={(e) => setUsername(e.target.value)}
+      style={styles.input}
+      required
+    />
     </>
   );
 
   const renderCustomerFields = () => (
     <>
-      <input
-        type="text"
-        placeholder="Shop Name"
-        value={shopName}
-        onChange={(e) => setShopName(e.target.value)}
-        style={styles.input}
-        required
-      />
-      <input
-        type="text"
-        placeholder="Shop Address"
-        value={shopAddress}
-        onChange={(e) => setShopAddress(e.target.value)}
-        style={styles.input}
-        required
-      />
+    <input
+      type="text"
+      placeholder="Shop Name"
+      value={shopName}
+      onChange={(e) => setShopName(e.target.value)}
+      style={styles.input}
+      required
+    />
+    <div>
+      <label style={styles.mapLabel}>Select Shop Location on Map:</label>
+      <LoadScript googleMapsApiKey="AIzaSyDBz09hJefhlXJUFtOd9p34dSa9aHO0lz4">
+        <GoogleMap
+          mapContainerStyle={{ height: '250px', width: '100%', marginBottom: '15px', borderRadius: '8px' }}
+          center={shopCoords || { lat: 33.8938, lng: 35.5018 }}
+          zoom={12}
+          onClick={handleMapClick}
+        >
+          {shopCoords && <Marker position={shopCoords} />}
+        </GoogleMap>
+      </LoadScript>
+      {shopCoords && (
+        <p style={{ fontSize: '14px', color: '#ccc' }}>
+          📍 Selected: {shopCoords.lat.toFixed(4)}, {shopCoords.lng.toFixed(4)}
+        </p>
+      )}
+    </div>
     </>
   );
 
   const renderDriverFields = () => (
     <>
-      <input
-        type="text"
-        placeholder="Vehicle Type"
-        value={vehicleType}
-        onChange={(e) => setVehicleType(e.target.value)}
-        style={styles.input}
-        required
-      />
-      <div style={styles.fileUpload}>
-        <label style={styles.fileLabel}>
-          Upload ID Document (max 5MB)
+    <input
+      type="text"
+      placeholder="Vehicle Type"
+      value={vehicleType}
+      onChange={(e) => setVehicleType(e.target.value)}
+      style={styles.input}
+      required
+    />
+    <div style={styles.fileUpload}>
+      <label style={styles.fileLabel}>
+        Upload ID Document (max 5MB)
           <input
-            type="file"
-            accept=".pdf,.jpg,.jpeg,.png"
-            onChange={handleFileUpload}
-            style={styles.fileInput}
-            required
-          />
-        </label>
-        {idDocument && <p style={styles.fileName}>{idDocument.name}</p>}
-      </div>
+          type="file"
+          accept=".pdf,.jpg,.jpeg,.png"
+          onChange={handleFileUpload}
+          style={styles.fileInput}
+          required
+        />
+      </label>
+      {idDocument && <p style={styles.fileName}>{idDocument.name}</p>}
+    </div>
     </>
   );
+
+  const [location, setLocation] = useState({ lat: 33.8938, lng: 35.5018 }); // Default: Beirut
+
+  const handleMapClick = (e) => {
+    const lat = e.latLng.lat();
+    const lng = e.latLng.lng();
+    setLocation({ lat, lng });
+    setShopCoords({ lat, lng }); // Set address field to coordinates
+  };
+
 
   return (
     <div style={styles.container}>
@@ -254,7 +274,7 @@ const styles = {
     backgroundAttachment: 'fixed',
     position: 'relative',
   },
-    backgroundOverlay: {
+  backgroundOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
@@ -448,6 +468,8 @@ const styles = {
     textAlign: 'center',
     fontWeight: '500',
   },
+  input: { padding: '12px', marginBottom: '15px', borderRadius: '6px', border: '1px solid #ccc' },
+  mapLabel: { display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#fff' },
 };
 
 export default Register;

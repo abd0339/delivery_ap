@@ -9,6 +9,7 @@ const CreateOrder = () => {
   const [serialNumber, setSerialNumber] = useState('');
   const [packagePrice, setPackagePrice] = useState('');
   const [originAddress, setOriginAddress] = useState('');
+  const [originCoords, setOriginCoords] = useState(null);
   const [useDefaultOrigin, setUseDefaultOrigin] = useState(true);
   const [deliveryPhone, setDeliveryPhone] = useState('');
   const [showMap, setShowMap] = useState(false);
@@ -24,6 +25,7 @@ const CreateOrder = () => {
   const [distance, setDistance] = useState(0);
   const [isHoveringSubmit, setIsHoveringSubmit] = useState(false);
   const [isHoveringCancel, setIsHoveringCancel] = useState(false);
+  const [changingOrigin, setChangingOrigin] = useState(false);
 
   const mapContainerStyle = {
     height: '300px',
@@ -43,6 +45,10 @@ const CreateOrder = () => {
           const response = await axios.get(`http://localhost:3001/customers/${storedId}`);
           setShopAddress(response.data.shop_address);
           setOriginAddress(response.data.shop_address);
+          setOriginCoords({
+            lat: parseFloat(response.data.origin_lat || 33.8938),
+            lng: parseFloat(response.data.origin_lng || 35.5018),
+          });
         } catch (err) {
           console.error('Error fetching customer data:', err);
         }
@@ -51,10 +57,21 @@ const CreateOrder = () => {
     fetchCustomerData();
   }, []);
 
+  const handleOriginMapClick = (e) => {
+    setOriginCoords({
+      lat: e.latLng.lat(),
+      lng: e.latLng.lng()
+    });
+    setOriginAddress(`Lat:${e.latLng.lat().toFixed(4)},Lng:${e.latLng.lng().toFixed(4)}`);
+  };
+
   const handleAddressToggle = () => {
     const newState = !useDefaultOrigin;
     setUseDefaultOrigin(newState);
-    if (newState) setOriginAddress(shopAddress);
+    setChangingOrigin(!newState);
+    if (newState) {
+      setOriginAddress(shopAddress);
+    }
   };
 
   const handleMapClick = (e) => {
@@ -66,10 +83,10 @@ const CreateOrder = () => {
 
   const calculateDistance = async () => {
     if (!deliveryCoords || !shopAddress) return;
-    
+
     try {
       const response = await axios.post('http://localhost:3001/calculate-distance', {
-        origin: shopAddress,
+        origin: originAddress,
         destination: `${deliveryCoords.lat},${deliveryCoords.lng}`
       });
       setDistance(response.data.distance);
@@ -87,6 +104,12 @@ const CreateOrder = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (orderType === 'package' && !deliveryCoords) {
+      setError('Please select a delivery location on the map');
+      return;
+    }
+
     setIsSubmitting(true);
 
     const orderData = {
@@ -94,6 +117,7 @@ const CreateOrder = () => {
       orderType,
       serialNumber: serialNumber || null,
       originAddress,
+      originCoords,
       deliveryInfo: showMap ? deliveryCoords : deliveryPhone,
       paymentMethod,
       packagePrice: parseFloat(packagePrice),
@@ -125,7 +149,7 @@ const CreateOrder = () => {
           <h2 style={styles.heading}>Create New Order</h2>
           <div style={styles.headerDecoration}></div>
         </div>
-        
+
         <form onSubmit={handleSubmit} style={styles.form}>
           {/* Order Type Selection */}
           <div style={styles.section}>
@@ -230,33 +254,23 @@ const CreateOrder = () => {
           </div>
 
           {/* Origin Address Section */}
-          <div style={styles.section}>
-            <div style={styles.originHeader}>
-              <h3 style={styles.sectionTitle}>
-                <span style={styles.sectionIcon}>🏠</span>
-                Origin Address
-              </h3>
-              <button
-                type="button"
-                onClick={handleAddressToggle}
-                style={useDefaultOrigin ? styles.toggleButtonActive : styles.toggleButton}
-                onMouseEnter={() => setIsHoveringCancel(true)}
-                onMouseLeave={() => setIsHoveringCancel(false)}
-              >
-                {useDefaultOrigin ? 'Change Address' : 'Use Default'}
-                <span style={isHoveringCancel ? styles.buttonHoverEffect : {}}></span>
-              </button>
+          {changingOrigin && originCoords && (
+            <div style={{ marginTop: 20 }}>
+              <LoadScript googleMapsApiKey="AIzaSyDBz09hJefhlXJUFtOd9p34dSa9aHO0lz4">
+                <GoogleMap
+                  mapContainerStyle={mapContainerStyle}
+                  center={originCoords}
+                  zoom={14}
+                  onClick={handleOriginMapClick}
+                >
+                  <Marker position={originCoords} />
+                </GoogleMap>
+              </LoadScript>
+              <p style={{ textAlign: 'center', marginTop: 10, color: '#475569' }}>
+                📍 Selected Origin: {originCoords.lat.toFixed(4)}, {originCoords.lng.toFixed(4)}
+              </p>
             </div>
-            <textarea
-              value={originAddress}
-              onChange={(e) => setOriginAddress(e.target.value)}
-              style={styles.textarea}
-              readOnly={useDefaultOrigin}
-              required
-              placeholder="Origin address"
-            />
-          </div>
-
+          )}
           {/* Delivery Method Section */}
           <div style={styles.section}>
             <h3 style={styles.sectionTitle}>
@@ -301,21 +315,21 @@ const CreateOrder = () => {
                 )}
               </div>
             ) : (
-              <div style={styles.inputWrapper}>
-                <label style={styles.inputLabel}>Recipient WhatsApp Number*</label>
-                <div style={styles.inputContainer}>
-                  <span style={styles.inputPrefix}>+</span>
-                  <input
-                    type="tel"
-                    placeholder="e.g. 1234567890"
-                    value={deliveryPhone}
-                    onChange={(e) => setDeliveryPhone(e.target.value)}
-                    style={styles.input}
-                    required
-                  />
+                <div style={styles.inputWrapper}>
+                  <label style={styles.inputLabel}>Recipient WhatsApp Number*</label>
+                  <div style={styles.inputContainer}>
+                    <span style={styles.inputPrefix}>+</span>
+                    <input
+                      type="tel"
+                      placeholder="e.g. 1234567890"
+                      value={deliveryPhone}
+                      onChange={(e) => setDeliveryPhone(e.target.value)}
+                      style={styles.input}
+                      required
+                    />
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
           </div>
 
           {/* Payment Method */}

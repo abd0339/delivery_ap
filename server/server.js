@@ -8,6 +8,8 @@ const rateLimit = require('express-rate-limit');
 const fs = require('fs');
 const path = require('path');
 const session = require('express-session');
+const { updateDriverLocation } = require('./socket/driverLocationStore');
+
 
 const app = express();
 const server = http.createServer(app); // ✅ Use HTTP server for socket.io
@@ -20,6 +22,7 @@ const io = new Server(server, {
 
 const port = process.env.PORT || 3001;
 
+app.set('io', io);
 app.set('trust proxy', 1);
 app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
 app.use(express.json({ limit: '50mb' }));
@@ -40,10 +43,24 @@ if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
 io.on('connection', (socket) => {
   console.log('📡 New client connected:', socket.id);
 
+  socket.on('driverLocation', ({ orderId, lat, lng }) => {
+    const driverId = socket.handshake.query.driverId;
+    if (driverId) {
+      updateDriverLocation(driverId, { lat, lng });
+      socket.broadcast.emit(`orderLocationUpdate:${orderId}`, { lat, lng });
+    }
+  });
+
+  socket.on('registerDriver', (driverId) => {
+    socket.join(`driver:${driverId}`);
+    console.log(`Driver ${driverId} joined room`);
+  });
+
   // --- 1. JOIN ROOM BASED ON ORDER ID ---
   socket.on('joinRoom', ({ orderId }) => {
     socket.join(orderId);
     console.log(`🟢 Socket ${socket.id} joined room: ${orderId}`);
+
   });
 
   // --- 2. HANDLE INCOMING CHAT MESSAGE ---

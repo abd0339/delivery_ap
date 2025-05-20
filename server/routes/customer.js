@@ -20,4 +20,20 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// server/routes/customer.js
+router.put('/update-address/:customerId', async (req, res) => {
+  const { lat, lng } = req.body;
+  const { customerId } = req.params;
+
+  try {
+    const location = `${lat},${lng}`;
+    await pool.query('UPDATE customers SET shop_address = ? WHERE customer_id = ?', [location, customerId]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Failed to update address' });
+  }
+});
+
+
 module.exports = router;
