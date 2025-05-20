@@ -62,7 +62,7 @@ const Register = () => {
           password,
           phoneNumber,
           shopName,
-          shopCoords: JSON.stringify(shopCoords),
+          shopAddress: JSON.stringify(shopCoords),
           username,
         });
       } else if (userType === 'driver') {
@@ -468,7 +468,6 @@ const styles = {
     textAlign: 'center',
     fontWeight: '500',
   },
-  input: { padding: '12px', marginBottom: '15px', borderRadius: '6px', border: '1px solid #ccc' },
   mapLabel: { display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#fff' },
 };
 

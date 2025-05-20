@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const pool = require('../db');
 const router = express.Router();
 
+
 // REGISTER CUSTOMER
 router.post('/', async (req, res) => {
   try {
@@ -39,7 +40,7 @@ router.post('/', async (req, res) => {
       `INSERT INTO customers (email, password, phone_number, shop_name, shop_address, username) VALUES (?, ?, ?, ?, ?, ?)`,
       [email, hashedPassword, phoneNumber, shopName, shopAddress, username]
     );
-
+    const coords = JSON.parse(shopAddress); 
     console.log("Registration successful");
     res.json({ success: true });
   } catch (error) {
