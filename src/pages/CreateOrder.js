@@ -37,25 +37,46 @@ const CreateOrder = () => {
   };
 
   useEffect(() => {
+    const storedId = localStorage.getItem('shopOwnerId');
+    console.log("Stored shopOwnerId:", storedId); // Debug line
+  
+    if (!storedId || storedId === "undefined" || storedId === null) {
+      setError("Not logged in. Please log in again.");
+      return;
+    }
+  
+    setCustomerId(storedId);
+  
     const fetchCustomerData = async () => {
-      const storedId = localStorage.getItem('shopOwnerId');
-      if (storedId) {
-        setCustomerId(storedId);
-        try {
-          const response = await axios.get(`http://localhost:3001/customers/${storedId}`);
-          setShopAddress(response.data.shop_address);
-          setOriginAddress(response.data.shop_address);
-          setOriginCoords({
-            lat: parseFloat(response.data.origin_lat || 33.8938),
-            lng: parseFloat(response.data.origin_lng || 35.5018),
-          });
-        } catch (err) {
-          console.error('Error fetching customer data:', err);
+      try {
+        const response = await axios.get(`http://localhost:3001/customers/${storedId}`);
+  
+        // Optional: Log response
+        console.log("Fetched customer data:", response.data);
+  
+        const shopAddress = response.data.shop_address || "";
+        const originLat = parseFloat(response.data.origin_lat);
+        const originLng = parseFloat(response.data.origin_lng);
+  
+        setShopAddress(shopAddress);
+        setOriginAddress(shopAddress);
+  
+        if (!isNaN(originLat) && !isNaN(originLng)) {
+          setOriginCoords({ lat: originLat, lng: originLng });
+        } else {
+          // Fallback coordinates
+          setOriginCoords({ lat: 33.8938, lng: 35.5018 });
         }
+      } catch (err) {
+        console.error('Error fetching customer data:', err);
+        setError('Failed to load customer profile. Please try again.');
       }
     };
+  
     fetchCustomerData();
   }, []);
+  
+
 
   const handleOriginMapClick = (e) => {
     setOriginCoords({
@@ -104,12 +125,18 @@ const CreateOrder = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-
+    if (!customerId || customerId === "undefined") {
+      setError("Invalid customer ID. Please log in again.");
+      return;
+    }
+    if (!originAddress) {
+      setError("Origin address is missing.");
+      return;
+    }
     if (orderType === 'package' && !deliveryCoords) {
       setError('Please select a delivery location on the map');
       return;
     }
-
     setIsSubmitting(true);
 
     const orderData = {
@@ -117,18 +144,13 @@ const CreateOrder = () => {
       orderType,
       serialNumber: serialNumber || null,
       originAddress,
-      originCoords,
       deliveryInfo: showMap ? deliveryCoords : deliveryPhone,
       paymentMethod,
       packagePrice: parseFloat(packagePrice),
-      deliveryFee: predictedPrice,
-      totalPrice: (parseFloat(packagePrice) || 0) + predictedPrice,
-      ...(orderType === 'package' && {
-        length: parseFloat(length),
-        weight: parseFloat(weight),
-        distance: distance
-      })
+      length: orderType === 'package' ? parseFloat(length) : 0,
+      weight: orderType === 'package' ? parseFloat(weight) : 0
     };
+    console.log("Submitting order data:", orderData);
 
     try {
       const response = await axios.post('http://localhost:3001/orders', orderData);
@@ -252,7 +274,22 @@ const CreateOrder = () => {
               </div>
             )}
           </div>
-
+          <div style={styles.section}>
+            <h3 style={styles.sectionTitle}>
+              <span style={styles.sectionIcon}>🏠</span>
+              Origin Address
+  </h3>
+            <div style={styles.originHeader}>
+              <span>Using default shop address: {shopAddress}</span>
+              <button
+                type="button"
+                onClick={handleAddressToggle}
+                style={!useDefaultOrigin ? styles.toggleButtonActive : styles.toggleButton}
+              >
+                {useDefaultOrigin ? 'Change Origin' : 'Use Default'}
+              </button>
+            </div>
+          </div>
           {/* Origin Address Section */}
           {changingOrigin && originCoords && (
             <div style={{ marginTop: 20 }}>

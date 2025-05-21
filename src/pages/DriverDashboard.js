@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { io } from 'socket.io-client';/* live location*/
@@ -9,6 +9,7 @@ import 'react-toastify/dist/ReactToastify.css';
 const notificationSound = new Audio('/notification.mp3'); // put notification.mp3 in public folder
 const DriverDashboard = () => {
   const navigate = useNavigate();
+  const socketRef = useRef(null);
   const [availableOrders, setAvailableOrders] = useState([]);
   const [currentOrders, setCurrentOrders] = useState([]);
   const [balance, setBalance] = useState('$0.00');
@@ -21,36 +22,40 @@ const DriverDashboard = () => {
 
   useEffect(() => {
     const socket = io('http://localhost:3001');
+    socketRef.current = socket;
+
     const driverId = localStorage.getItem("driverId");
-    socket.emit('registerDriver', driverId);
 
-    socket.on('newAssignedOrder', (data) => {
-      toast.success(`📦 New Order Assigned! Order #${data.orderId}`, {
-        position: 'top-right',
-        autoClose: 5000,
-        pauseOnHover: true,
-        draggable: true
-      });
-    
-      notificationSound.play();
-    
-      // Optional: redirect after few seconds
-      setTimeout(() => {
-        navigate(`/track-order/${data.orderId}`);
-      }, 3000);
+    socket.on('connect', () => {
+      if (driverId) {
+        socket.emit('registerDriver', driverId); 
+      }
     });
-    
-
-    return () => socket.disconnect();
-
+  
+    if (socket && driverId) {
+      socket.on('newAssignedOrder', (data) => {
+        toast.success(`📦 New Order Assigned! Order #${data.orderId}`, {
+          position: 'top-right',
+          autoClose: 5000,
+          pauseOnHover: true,
+          draggable: true
+        });
+  
+        notificationSound.play();
+  
+        setTimeout(() => {
+          navigate(`/track-order/${data.orderId}`);
+        }, 3000);
+      });
+    }
+  
     const fetchData = async () => {
-      const driverId = localStorage.getItem("driverId");
       if (!driverId) {
         setError("Driver not logged in. Please log in.");
         setLoading(false);
         return;
       }
-
+  
       try {
         const [
           availableOrdersRes,
@@ -63,14 +68,14 @@ const DriverDashboard = () => {
           axios.get(`http://localhost:3001/wallet/driver/${driverId}`),
           axios.get(`http://localhost:3001/verification/status/${driverId}`)
         ]);
-
+  
         setAvailableOrders(availableOrdersRes.data);
         setCurrentOrders(currentOrdersRes.data);
-
+  
         const rawBalance = walletRes.data.balance;
         const numericBalance = parseFloat(rawBalance) || 0;
         setBalance(`$${numericBalance.toFixed(2)}`);
-
+  
         if (verificationRes.data.success) {
           setVerificationStatus({
             isVerified: verificationRes.data.isVerified,
@@ -84,9 +89,13 @@ const DriverDashboard = () => {
         setLoading(false);
       }
     };
-
+  
     fetchData();
-  }, []);
+  
+    return () => {
+      if (socketRef.current) socketRef.current.disconnect();
+    };
+  }, []);  
 
   const handleAcceptOrder = async (orderId) => {
     const driverId = localStorage.getItem("driverId");

@@ -92,7 +92,7 @@ const customerRoutes = require('./routes/customer');
 
 app.use('/auth', authRoutes);
 app.use('/admin', adminRoutes);
-app.use('/orders', ordersRoutes);
+app.use('/orders', ordersRoutes(io));
 app.use('/wallet', walletRoutes);
 app.use('/register-driver', driverRoutes);
 app.use('/register-customer', registerCustomerRoutes);

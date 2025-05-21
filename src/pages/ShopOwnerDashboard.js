@@ -58,12 +58,12 @@ const ShopOwnerDashboard = () => {
       <p style={styles.loadingText}>Loading your dashboard...</p>
     </div>
   );
-  
+
   if (error) return (
     <div style={styles.errorContainer}>
       <div style={styles.errorIcon}>!</div>
       <p style={styles.errorText}>{error}</p>
-      <button 
+      <button
         style={styles.errorButton}
         onClick={() => window.location.reload()}
       >
@@ -79,8 +79,8 @@ const ShopOwnerDashboard = () => {
           <h2 style={styles.logo}>ShopDash</h2>
         </div>
         <div style={styles.menuItems}>
-          <div 
-            style={activeSection === 'dashboard' ? {...styles.menuItem, ...styles.activeMenuItem} : styles.menuItem}
+          <div
+            style={activeSection === 'dashboard' ? { ...styles.menuItem, ...styles.activeMenuItem } : styles.menuItem}
             onClick={() => setActiveSection('dashboard')}
           >
             <span style={styles.menuIcon}>📊</span>
@@ -100,8 +100,8 @@ const ShopOwnerDashboard = () => {
           </Link>
         </div>
         <div style={styles.sidebarFooter}>
-          <button 
-            onClick={handleLogout} 
+          <button
+            onClick={handleLogout}
             style={styles.logoutButton}
           >
             Logout
@@ -114,11 +114,11 @@ const ShopOwnerDashboard = () => {
           <h1 style={styles.headerTitle}>Shop Owner Dashboard</h1>
           <div style={styles.headerRight}>
             <div style={styles.dateTime}>
-              {new Date().toLocaleDateString('en-US', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
+              {new Date().toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
               })}
             </div>
             <div style={styles.userInfo}>
@@ -138,7 +138,7 @@ const ShopOwnerDashboard = () => {
                 <p style={styles.walletBalance}>{wallet ? formatCurrency(wallet.balance) : '$0.00'}</p>
               </div>
             </div>
-            
+
             <div style={styles.summaryCard}>
               <div style={styles.summaryIconContainer}>
                 <span style={styles.summaryIcon}>📦</span>
@@ -148,7 +148,7 @@ const ShopOwnerDashboard = () => {
                 <p style={styles.summaryValue}>{orders.length}</p>
               </div>
             </div>
-            
+
             <div style={styles.summaryCard}>
               <div style={styles.summaryIconContainer}>
                 <span style={styles.summaryIcon}>🔄</span>
@@ -167,7 +167,7 @@ const ShopOwnerDashboard = () => {
               <h2 style={styles.sectionTitle}>Recent Orders</h2>
               <button style={styles.viewAllButton}>View All</button>
             </div>
-            
+
             {orders.length === 0 ? (
               <div style={styles.emptyState}>
                 <div style={styles.emptyStateIcon}>📭</div>
@@ -175,43 +175,45 @@ const ShopOwnerDashboard = () => {
                 <Link to="/create-order" style={styles.emptyStateButton}>Create Your First Order</Link>
               </div>
             ) : (
-              <div style={styles.tableWrapper}>
-                <table style={styles.table}>
-                  <thead style={styles.tableHeader}>
-                    <tr>
-                      <th style={styles.tableHeaderCell}>Order ID</th>
-                      <th style={styles.tableHeaderCell}>Customer</th>
-                      <th style={styles.tableHeaderCell}>Total</th>
-                      <th style={styles.tableHeaderCell}>Status</th>
-                      <th style={styles.tableHeaderCell}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {orders.map((order, index) => (
-                      <tr key={order.id} style={index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd}>
-                        <td style={styles.tableCell}>{order.id}</td>
-                        <td style={styles.tableCell}>{order.customer_id}</td>
-                        <td style={styles.tableCell}>{formatCurrency(order.total_amount)}</td>
-                        <td style={styles.tableCell}>
-                          <span style={{
-                            ...styles.statusBadge,
-                            backgroundColor: 
-                              (order.status === 'Completed' ? '#4caf50' : 
-                              order.status === 'Processing' ? '#2196f3' : 
-                              order.status === 'Cancelled' ? '#f44336' : '#ff9800')
-                          }}>
-                            {order.status || "Pending"}
-                          </span>
-                        </td>
-                        <td style={styles.tableCell}>
-                          <button style={styles.viewButton}>View</button>
-                        </td>
+                <div style={styles.tableWrapper}>
+                  <table style={styles.table}>
+                    <thead style={styles.tableHeader}>
+                      <tr>
+                        <th style={styles.tableHeaderCell}>Order ID</th>
+                        <th style={styles.tableHeaderCell}>Customer</th>
+                        <th style={styles.tableHeaderCell}>Total</th>
+                        <th style={styles.tableHeaderCell}>Status</th>
+                        <th style={styles.tableHeaderCell}>Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                    </thead>
+                    <tbody>
+                      {orders.map((order, index) => (
+                        <tr key={order.order_id} style={index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd}>
+                          <td style={styles.tableCell}>{order.order_id}</td>
+                          <td style={styles.tableCell}>{order.customer_id}</td>
+                          <td style={styles.tableCell}>{formatCurrency(order.total_amount)}</td>
+                          <td style={styles.tableCell}>
+                            <span style={{
+                              ...styles.statusBadge,
+                              backgroundColor:
+                                (order.status === 'Completed' ? '#4caf50' :
+                                  order.status === 'Processing' ? '#2196f3' :
+                                    order.status === 'Cancelled' ? '#f44336' : '#ff9800')
+                            }}>
+                              {order.status || "Pending"}
+                            </span>
+                          </td>
+                          <td style={styles.tableCell}>
+                            <button onClick={() => navigate(`/track-order/${order.order_id}`)} style={styles.viewAllButton}>
+                              View
+                              </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
           </section>
         </main>
       </div>
@@ -230,7 +232,7 @@ const styles = {
     padding: 0,
     transition: 'all 0.3s ease',
   },
-  
+
   // Sidebar styles
   sidebar: {
     width: '260px',
@@ -315,7 +317,7 @@ const styles = {
       transform: 'translateY(-2px)',
     },
   },
-  
+
   // Content area
   content: {
     flex: 1,
@@ -324,7 +326,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
   },
-  
+
   // Header
   header: {
     backgroundColor: '#fff',
@@ -373,13 +375,13 @@ const styles = {
       transform: 'scale(1.05)',
     },
   },
-  
+
   // Main content area
   main: {
     padding: '30px',
     flex: 1,
   },
-  
+
   // Dashboard summary cards
   dashboardSummary: {
     display: 'grid',
@@ -435,7 +437,7 @@ const styles = {
     fontWeight: 700,
     margin: 0,
   },
-  
+
   // Section styles
   section: {
     backgroundColor: '#fff',
@@ -472,7 +474,7 @@ const styles = {
       color: '#334155',
     },
   },
-  
+
   // Table styles
   tableWrapper: {
     overflowX: 'auto',
@@ -538,7 +540,7 @@ const styles = {
       transform: 'translateY(-2px)',
     },
   },
-  
+
   // Empty state
   emptyState: {
     textAlign: 'center',
@@ -558,7 +560,7 @@ const styles = {
   },
   emptyStateButton: {
     padding: '12px 24px',
-    backgroundColor: '#3b82f6', 
+    backgroundColor: '#3b82f6',
     color: '#fff',
     border: 'none',
     borderRadius: '8px',
@@ -573,7 +575,7 @@ const styles = {
       boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
     },
   },
-  
+
   // Loading state
   loadingContainer: {
     display: 'flex',
@@ -600,7 +602,7 @@ const styles = {
     color: '#64748b',
     fontSize: '16px',
   },
-  
+
   // Error state
   errorContainer: {
     display: 'flex',
@@ -663,7 +665,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   });
-  
+
   // Add hover effects for logout button
   const logoutBtn = document.querySelector('[style*="logoutButton"]');
   if (logoutBtn) {
@@ -680,7 +682,7 @@ document.addEventListener('DOMContentLoaded', () => {
       logoutBtn.style.transform = 'translateY(0)';
     });
   }
-  
+
   // Add hover effects for summary cards
   const summaryCards = document.querySelectorAll('[style*="summaryCard"]');
   summaryCards.forEach(card => {

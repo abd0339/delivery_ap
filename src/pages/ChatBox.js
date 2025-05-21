@@ -36,8 +36,10 @@ const ChatBox = ({ orderId, userType }) => {
       sender: userType,
       message: newMessage
     };
-    socketRef.current.emit('chatMessage', msgData);
-    setNewMessage('');
+    if (socketRef.current && socketRef.current.connected) {
+      socketRef.current.emit('chatMessage', msgData);
+      setNewMessage('');
+    }
   };
 
   return (
