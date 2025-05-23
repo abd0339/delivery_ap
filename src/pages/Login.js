@@ -59,6 +59,10 @@ const Login = () => {
       console.error('Login error:', err);
     }
   };
+
+  const [hoveredButton, setHoveredButton] = useState(null);
+  const [hoveredLink, setHoveredLink] = useState(null);
+
   return (
     <div style={styles.container}>
       <div style={styles.loginBox}>
@@ -69,8 +73,14 @@ const Login = () => {
             style={{
               ...styles.userTypeButton,
               ...(userType === 'customer' && styles.activeButton),
+              ...(hoveredButton === 'customer' && { 
+                transform: 'scale(1.05)', 
+                backgroundColor: 'rgba(255, 50, 50, 0.3)' 
+              }),
             }}
             onClick={() => setUserType('customer')}
+            onMouseEnter={() => setHoveredButton('customer')}
+            onMouseLeave={() => setHoveredButton(null)}
             type="button"
           >
             Shop Owner
@@ -79,8 +89,14 @@ const Login = () => {
             style={{
               ...styles.userTypeButton,
               ...(userType === 'driver' && styles.activeButton),
+              ...(hoveredButton === 'driver' && { 
+                transform: 'scale(1.05)', 
+                backgroundColor: 'rgba(255, 50, 50, 0.3)' 
+              }),
             }}
             onClick={() => setUserType('driver')}
+            onMouseEnter={() => setHoveredButton('driver')}
+            onMouseLeave={() => setHoveredButton(null)}
             type="button"
           >
             Driver
@@ -89,8 +105,14 @@ const Login = () => {
             style={{
               ...styles.userTypeButton,
               ...(userType === 'admin' && styles.activeButton),
+              ...(hoveredButton === 'admin' && { 
+                transform: 'scale(1.05)', 
+                backgroundColor: 'rgba(255, 50, 50, 0.3)' 
+              }),
             }}
             onClick={() => setUserType('admin')}
+            onMouseEnter={() => setHoveredButton('admin')}
+            onMouseLeave={() => setHoveredButton(null)}
             type="button"
           >
             Admin
@@ -115,18 +137,51 @@ const Login = () => {
             required
           />
           {error && <p style={styles.errorText}>{error}</p>}
-          <button type="submit" style={styles.loginButton}>
+          <button 
+            type="submit" 
+            style={{
+              ...styles.loginButton,
+              ...(hoveredButton === 'login' && { 
+                transform: 'translateY(-3px)',
+                boxShadow: '0 6px 10px rgba(0,0,0,0.2)'
+              }),
+            }}
+            onMouseEnter={() => setHoveredButton('login')}
+            onMouseLeave={() => setHoveredButton(null)}
+          >
             Login
           </button>
         </form>
 
         <div style={styles.links}>
-          <Link to="/forgot-password" style={styles.link}>
+          <Link 
+            to="/forgot-password" 
+            style={{
+              ...styles.link,
+              ...(hoveredLink === 'forgot' && { 
+                color: '#FFD54F',
+                transform: 'translateX(5px)'
+              }),
+            }}
+            onMouseEnter={() => setHoveredLink('forgot')}
+            onMouseLeave={() => setHoveredLink(null)}
+          >
             Forgot Password?
           </Link>
           <p style={styles.signupText}>
             Don't have an account?{' '}
-            <Link to="/register" style={styles.link}>
+            <Link 
+              to="/register" 
+              style={{
+                ...styles.link,
+                ...(hoveredLink === 'signup' && { 
+                  color: '#FFD54F',
+                  transform: 'translateX(5px)'
+                }),
+              }}
+              onMouseEnter={() => setHoveredLink('signup')}
+              onMouseLeave={() => setHoveredLink(null)}
+            >
               Sign Up
             </Link>
           </p>
@@ -144,23 +199,23 @@ const styles = {
     alignItems: 'center',
     minHeight: '100vh',
     fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-    backgroundImage: 'url("https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80")',
+    backgroundImage: 'url("/images/loginPage.png")',
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     backgroundAttachment: 'fixed',
     position: 'relative',
   },
-    backgroundOverlay: {
+  backgroundOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
     zIndex: 1,
   },
   loginBox: {
-    backgroundColor: 'rgba(41, 12, 146, 0.85)',
+    backgroundColor: 'rgba(41, 12, 146, 0)',
     padding: '40px',
     borderRadius: '12px',
     boxShadow: '0 10px 30px rgba(244, 67, 54, 0.3)',
@@ -170,13 +225,9 @@ const styles = {
     transition: 'transform 0.3s ease, box-shadow 0.3s ease',
     position: 'relative',
     zIndex: 2,
-    '&:hover': {
-      transform: 'translateY(-5px)',
-      boxShadow: '0 15px 35px rgba(244, 67, 54, 0.4)',
-    },
   },
   title: {
-    marginBottom: '30px',
+    marginBottom: '60px',
     color: 'white',
     fontSize: '28px',
     fontWeight: '600',
@@ -194,7 +245,7 @@ const styles = {
     border: 'none',
     borderRadius: '6px',
     backgroundColor: 'rgba(255, 0, 0, 0.2)',
-    color: 'white',
+    color: 'black',
     fontSize: '14px',
     cursor: 'pointer',
     transition: 'all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)',
@@ -207,11 +258,6 @@ const styles = {
     fontWeight: '600',
     boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
   },
-  hoverStyle: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    transform: 'scale(1.03)',
-    boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
-  },
   form: {
     display: 'flex',
     flexDirection: 'column',
@@ -223,20 +269,12 @@ const styles = {
     border: '2px solid transparent',
     borderRadius: '6px',
     fontSize: '16px',
-    color: 'white',
+    color: 'black', // Changed text color to black
     transition: 'all 0.3s ease',
-    '&:focus': {
-      borderColor: '#ffeb3b',
-      boxShadow: '0 0 0 3px rgba(255, 235, 59, 0.3)',
-      outline: 'none',
-    },
-    '&::placeholder': {
-      color: 'rgba(255, 255, 255, 0.7)',
-    },
   },
   loginButton: {
     padding: '14px',
-    background: 'linear-gradient(to right,rgb(12, 187, 18), #2E7D32)',
+    background: 'orange',
     color: 'white',
     border: 'none',
     borderRadius: '6px',
@@ -247,9 +285,6 @@ const styles = {
     textTransform: 'uppercase',
     transition: 'all 0.3s ease, transform 0.2s ease',
     boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-    '&:active': {
-      transform: 'translateY(1px)',
-    },
   },
   links: {
     marginTop: '25px',
@@ -268,10 +303,11 @@ const styles = {
     fontSize: '15px',
     textShadow: '0 1px 2px rgba(0,0,0,0.1)',
   },
-
   link: {
-    color: '#4CAF50',
+    color: 'green', // Changed signup link color
     textDecoration: 'none',
+    transition: 'color 0.3s ease, transform 0.3s ease',
+    display: 'inline-block',
   },
   signupText: {
     marginTop: '10px',
