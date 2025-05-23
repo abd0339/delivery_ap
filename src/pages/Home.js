@@ -9,8 +9,8 @@ const Home = () => {
     <div style={styles.container}>
       {/* Hero Section */}
       <div style={styles.hero}>
-        <h1 style={styles.heroTitle}>Welcome to DeliveryApp</h1>
-        <p style={styles.heroSubtitle}>Fast, Reliable, and Secure Delivery Services</p>
+        <h3 style={styles.heroTitle}><b>WELCOME TO</b></h3>
+        <h2 style={styles.heroSubtitle}><i>FASTER APP</i></h2>
         <div style={styles.heroButtons}>
           <Link to="/login" 
             style={styles.button} 
@@ -169,7 +169,7 @@ const styles = {
     fontFamily: '"Poppins", Arial, sans-serif',
     display: 'flex',
     flexDirection: 'column',
-    backgroundImage: 'url("/images/delivery3.png")', // Keeping original background image with overlay
+    backgroundImage: 'url("/images/homePage.png")', // Keeping original background image with overlay
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     backgroundAttachment: 'fixed',
@@ -178,33 +178,40 @@ const styles = {
   hero: {
     background: 'rgba(0, 0, 0, 0.6)',
     color: 'white',
-    padding: '120px 30px',
+    padding: '65px 30px',
     textAlign: 'center',
     borderBottom: '4px solid #f8b500',
   },
   heroTitle: {
-    fontSize: '3.5rem',
-    marginBottom: '30px',
+    fontSize: '1.5rem',
+    marginBottom: '60px',
     fontWeight: 'bold',
     letterSpacing: '2px',
     textShadow: '2px 2px 8px rgba(0, 0, 0, 0.4)',
     animation: 'fadeInDown 1s ease-out',
+    paddingRight: '35px',
+    paddingTop: '40px',
   },
   heroSubtitle: {
     fontSize: '1.6rem',
     marginBottom: '40px',
     lineHeight: '1.8',
-    color: '#f8f9fa',
+    color: 'orange',
     maxWidth: '800px',
     margin: '0 auto 40px',
     textShadow: '1px 1px 4px rgba(0, 0, 0, 0.3)',
     animation: 'fadeInUp 1s ease-out 0.3s',
+    paddingRight: '50px',
+    paddingTop: '45px',
   },
   heroButtons: {
     display: 'flex',
     justifyContent: 'center',
-    gap: '30px',
+    gap: '60px',
     animation: 'fadeIn 1s ease-out 0.6s',
+    marginBottom: '20px', 
+    paddingRight: '50px',
+    marginTop: '-10px',
   },
   button: {
     background: 'linear-gradient(135deg, #fceabb 0%, #f8b500 100%)',
