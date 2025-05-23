@@ -8,6 +8,7 @@ const ShopOwnerDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeSection, setActiveSection] = useState('dashboard');
+  const [hoveredItem, setHoveredItem] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -66,6 +67,9 @@ const ShopOwnerDashboard = () => {
       <button
         style={styles.errorButton}
         onClick={() => window.location.reload()}
+        onMouseEnter={() => setHoveredItem('errorButton')}
+        onMouseLeave={() => setHoveredItem(null)}
+
       >
         Try Again
       </button>
@@ -76,33 +80,58 @@ const ShopOwnerDashboard = () => {
     <div style={styles.container}>
       <div style={styles.sidebar}>
         <div style={styles.logoContainer}>
-          <h2 style={styles.logo}>ShopDash</h2>
+          <h2 style={styles.logo}>DeliveryApp</h2>
         </div>
         <div style={styles.menuItems}>
-          <div
-            style={activeSection === 'dashboard' ? { ...styles.menuItem, ...styles.activeMenuItem } : styles.menuItem}
+          <div 
+            style={{
+              ...styles.menuItem,
+              ...(activeSection === 'dashboard' && styles.activeMenuItem),
+              ...(hoveredItem === 'dashboard' && styles.menuItemHover)
+            }}
             onClick={() => setActiveSection('dashboard')}
+            onMouseEnter={() => setHoveredItem('dashboard')}
+            onMouseLeave={() => setHoveredItem(null)}
           >
             <span style={styles.menuIcon}>📊</span>
             Dashboard
           </div>
           <Link to="/create-order" style={styles.menuItemLink}>
-            <div style={styles.menuItem}>
+            <div 
+              style={{
+                ...styles.menuItem,
+                ...(hoveredItem === 'createOrder' && styles.menuItemHover)
+              }}
+              onMouseEnter={() => setHoveredItem('createOrder')}
+              onMouseLeave={() => setHoveredItem(null)}
+            >
               <span style={styles.menuIcon}>➕</span>
               Create Order
             </div>
           </Link>
           <Link to="/wallet" style={styles.menuItemLink}>
-            <div style={styles.menuItem}>
+            <div 
+              style={{
+                ...styles.menuItem,
+                ...(hoveredItem === 'wallet' && styles.menuItemHover)
+              }}
+              onMouseEnter={() => setHoveredItem('wallet')}
+              onMouseLeave={() => setHoveredItem(null)}
+            >
               <span style={styles.menuIcon}>💰</span>
               Wallet
             </div>
           </Link>
         </div>
         <div style={styles.sidebarFooter}>
-          <button
-            onClick={handleLogout}
-            style={styles.logoutButton}
+          <button 
+            onClick={handleLogout} 
+            style={{
+              ...styles.logoutButton,
+              ...(hoveredItem === 'logout' && styles.logoutButtonHover)
+            }}
+            onMouseEnter={() => setHoveredItem('logout')}
+            onMouseLeave={() => setHoveredItem(null)}
           >
             Logout
           </button>
@@ -122,14 +151,30 @@ const ShopOwnerDashboard = () => {
               })}
             </div>
             <div style={styles.userInfo}>
-              <div style={styles.userAvatar}>SO</div>
+              <div 
+                style={{
+                  ...styles.userAvatar,
+                  ...(hoveredItem === 'avatar' && styles.userAvatarHover)
+                }}
+                onMouseEnter={() => setHoveredItem('avatar')}
+                onMouseLeave={() => setHoveredItem(null)}
+              >
+                SO
+              </div>
             </div>
           </div>
         </header>
 
         <main style={styles.main}>
           <div style={styles.dashboardSummary}>
-            <div style={styles.summaryCard}>
+            <div 
+              style={{
+                ...styles.summaryCard,
+                ...(hoveredItem === 'walletCard' && styles.summaryCardHover)
+              }}
+              onMouseEnter={() => setHoveredItem('walletCard')}
+              onMouseLeave={() => setHoveredItem(null)}
+            >
               <div style={styles.summaryIconContainer}>
                 <span style={styles.summaryIcon}>💰</span>
               </div>
@@ -138,8 +183,15 @@ const ShopOwnerDashboard = () => {
                 <p style={styles.walletBalance}>{wallet ? formatCurrency(wallet.balance) : '$0.00'}</p>
               </div>
             </div>
-
-            <div style={styles.summaryCard}>
+            
+            <div 
+              style={{
+                ...styles.summaryCard,
+                ...(hoveredItem === 'ordersCard' && styles.summaryCardHover)
+              }}
+              onMouseEnter={() => setHoveredItem('ordersCard')}
+              onMouseLeave={() => setHoveredItem(null)}
+            >
               <div style={styles.summaryIconContainer}>
                 <span style={styles.summaryIcon}>📦</span>
               </div>
@@ -148,8 +200,15 @@ const ShopOwnerDashboard = () => {
                 <p style={styles.summaryValue}>{orders.length}</p>
               </div>
             </div>
-
-            <div style={styles.summaryCard}>
+            
+            <div 
+              style={{
+                ...styles.summaryCard,
+                ...(hoveredItem === 'pendingCard' && styles.summaryCardHover)
+              }}
+              onMouseEnter={() => setHoveredItem('pendingCard')}
+              onMouseLeave={() => setHoveredItem(null)}
+            >
               <div style={styles.summaryIconContainer}>
                 <span style={styles.summaryIcon}>🔄</span>
               </div>
@@ -165,55 +224,89 @@ const ShopOwnerDashboard = () => {
           <section style={styles.section}>
             <div style={styles.sectionHeader}>
               <h2 style={styles.sectionTitle}>Recent Orders</h2>
-              <button style={styles.viewAllButton}>View All</button>
+              <button 
+                style={{
+                  ...styles.viewAllButton,
+                  ...(hoveredItem === 'viewAll' && styles.viewAllButtonHover)
+                }}
+                onMouseEnter={() => setHoveredItem('viewAll')}
+                onMouseLeave={() => setHoveredItem(null)}
+              >
+                View All
+              </button>
             </div>
-
+            
             {orders.length === 0 ? (
               <div style={styles.emptyState}>
                 <div style={styles.emptyStateIcon}>📭</div>
                 <p style={styles.emptyStateText}>No orders found.</p>
-                <Link to="/create-order" style={styles.emptyStateButton}>Create Your First Order</Link>
+                <Link 
+                  to="/create-order" 
+                  style={{
+                    ...styles.emptyStateButton,
+                    ...(hoveredItem === 'createFirst' && styles.emptyStateButtonHover)
+                  }}
+                  onMouseEnter={() => setHoveredItem('createFirst')}
+                  onMouseLeave={() => setHoveredItem(null)}
+                >
+                  Create Your First Order
+                </Link>
               </div>
             ) : (
-                <div style={styles.tableWrapper}>
-                  <table style={styles.table}>
-                    <thead style={styles.tableHeader}>
-                      <tr>
-                        <th style={styles.tableHeaderCell}>Order ID</th>
-                        <th style={styles.tableHeaderCell}>Customer</th>
-                        <th style={styles.tableHeaderCell}>Total</th>
-                        <th style={styles.tableHeaderCell}>Status</th>
-                        <th style={styles.tableHeaderCell}>Actions</th>
+              <div style={styles.tableWrapper}>
+                <table style={styles.table}>
+                  <thead style={styles.tableHeader}>
+                    <tr>
+                      <th style={styles.tableHeaderCell}>Order ID</th>
+                      <th style={styles.tableHeaderCell}>Customer</th>
+                      <th style={styles.tableHeaderCell}>Total</th>
+                      <th style={styles.tableHeaderCell}>Status</th>
+                      <th style={styles.tableHeaderCell}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orders.map((order, index) => (
+                      <tr 
+                        key={order.id} 
+                        style={{
+                          ...(index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd),
+                          ...(hoveredItem === `row-${order.id}` && styles.tableRowHover)
+                        }}
+                        onMouseEnter={() => setHoveredItem(`row-${order.id}`)}
+                        onMouseLeave={() => setHoveredItem(null)}
+                      >
+                        <td style={styles.tableCell}>{order.id}</td>
+                        <td style={styles.tableCell}>{order.customer_id}</td>
+                        <td style={styles.tableCell}>{formatCurrency(order.total_amount)}</td>
+                        <td style={styles.tableCell}>
+                          <span style={{
+                            ...styles.statusBadge,
+                            backgroundColor: 
+                              (order.status === 'Completed' ? '#4caf50' : 
+                              order.status === 'Processing' ? '#2196f3' : 
+                              order.status === 'Cancelled' ? '#f44336' : '#ff9800')
+                          }}>
+                            {order.status || "Pending"}
+                          </span>
+                        </td>
+                        <td style={styles.tableCell}>
+                          <button 
+                            style={{
+                              ...styles.viewButton,
+                              ...(hoveredItem === `view-${order.id}` && styles.viewButtonHover)
+                            }}
+                            onMouseEnter={() => setHoveredItem(`view-${order.id}`)}
+                            onMouseLeave={() => setHoveredItem(null)}
+                          >
+                            View
+                          </button>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {orders.map((order, index) => (
-                        <tr key={order.order_id} style={index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd}>
-                          <td style={styles.tableCell}>{order.order_id}</td>
-                          <td style={styles.tableCell}>{order.customer_id}</td>
-                          <td style={styles.tableCell}>{formatCurrency(order.total_amount)}</td>
-                          <td style={styles.tableCell}>
-                            <span style={{
-                              ...styles.statusBadge,
-                              backgroundColor:
-                                (order.status === 'Completed' ? '#4caf50' :
-                                  order.status === 'Processing' ? '#2196f3' :
-                                    order.status === 'Cancelled' ? '#f44336' : '#ff9800')
-                            }}>
-                              {order.status || "Pending"}
-                            </span>
-                          </td>
-                          <td style={styles.tableCell}>
-                            <button onClick={() => navigate(`/track-order/${order.order_id}`)} style={styles.viewAllButton}>
-                              View
-                              </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </section>
         </main>
       </div>
