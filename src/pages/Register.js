@@ -20,6 +20,10 @@ const Register = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+    // States for hover effects
+  const [hoveredButton, setHoveredButton] = useState(null);
+  const [hoveredLink, setHoveredLink] = useState(null);
+
   const validateFields = () => {
     if (!email || !password) {
       return 'Please fill in email and password.';
@@ -168,7 +172,17 @@ const Register = () => {
       required
     />
     <div style={styles.fileUpload}>
-      <label style={styles.fileLabel}>
+      <label 
+        style={{
+          ...styles.fileLabel,
+          ...(hoveredButton === 'fileUpload' && {
+            color: '#FFD54F',
+            transform: 'translateX(5px)'
+          })
+        }}
+        onMouseEnter={() => setHoveredButton('fileUpload')}
+        onMouseLeave={() => setHoveredButton(null)}
+      >
         Upload ID Document (max 5MB)
           <input
           type="file"
@@ -206,8 +220,14 @@ const Register = () => {
               style={{
                 ...styles.userTypeButton,
                 ...(userType === type && styles.activeButton),
+                ...(hoveredButton === type && { 
+                  transform: 'scale(1.05)', 
+                  backgroundColor: 'rgba(255, 50, 50, 0.3)' 
+                }),
               }}
               onClick={() => setUserType(type)}
+              onMouseEnter={() => setHoveredButton(type)}
+              onMouseLeave={() => setHoveredButton(null)}
             >
               {type === 'customer' ? 'Shop Owner' : type.charAt(0).toUpperCase() + type.slice(1)}
             </button>
@@ -243,8 +263,15 @@ const Register = () => {
             style={{
               ...styles.registerButton,
               ...(isLoading && styles.disabledButton),
+              ...(hoveredButton === 'register' && !isLoading && { 
+                transform: 'translateY(-3px)',
+                boxShadow: '0 6px 10px rgba(0,0,0,0.2)'
+              }),
+
             }}
             disabled={isLoading}
+            onMouseEnter={() => !isLoading && setHoveredButton('register')}
+            onMouseLeave={() => setHoveredButton(null)}
           >
             {isLoading ? 'Processing...' : 'Sign Up'}
           </button>
@@ -252,7 +279,18 @@ const Register = () => {
 
         <p style={styles.loginText}>
           Already have an account?{' '}
-          <Link to="/login" style={styles.link}>
+          <Link 
+            to="/login" 
+            style={{
+              ...styles.link,
+              ...(hoveredLink === 'login' && { 
+                color: '#FFD54F',
+                transform: 'translateX(5px)'
+              }),
+            }}
+            onMouseEnter={() => setHoveredLink('login')}
+            onMouseLeave={() => setHoveredLink(null)}
+          >
             Login
           </Link>
         </p>
@@ -268,7 +306,7 @@ const styles = {
     alignItems: 'center',
     minHeight: '100vh',
     fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-    backgroundImage: 'url("/images/driver4.jpg")',
+    backgroundImage: 'url("/images/RegisterPage.png")',
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     backgroundAttachment: 'fixed',
@@ -284,7 +322,7 @@ const styles = {
     zIndex: 1,
   },
   registerBox: {
-    backgroundColor: 'rgba(4, 36, 0, 0.85)',
+    backgroundColor: 'rgba(41, 12, 146, 0)',
     padding: '40px',
     borderRadius: '12px',
     boxShadow: '0 10px 30px rgba(244, 67, 54, 0.3)',
@@ -294,13 +332,9 @@ const styles = {
     transition: 'transform 0.3s ease, box-shadow 0.3s ease',
     position: 'relative',
     zIndex: 2,
-    '&:hover': {
-      transform: 'translateY(-5px)',
-      boxShadow: '0 15px 35px rgba(244, 67, 54, 0.4)',
-    },
   },
   title: {
-    marginBottom: '30px',
+    marginBottom: '60px',
     color: 'white',
     fontSize: '28px',
     fontWeight: '600',
@@ -318,7 +352,7 @@ const styles = {
     border: 'none',
     borderRadius: '6px',
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    color: 'white',
+    color: 'black',
     fontSize: '14px',
     cursor: 'pointer',
     transition: 'all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)',
@@ -331,12 +365,6 @@ const styles = {
     fontWeight: '600',
     boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
   },
-  hoverStyle: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    transform: 'scale(1.03)',
-    boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
-  },
-
   form: {
     display: 'flex',
     flexDirection: 'column',
@@ -348,16 +376,8 @@ const styles = {
     border: '2px solid transparent',
     borderRadius: '6px',
     fontSize: '16px',
-    color: 'white',
+    color: 'black', // Changed text color to black
     transition: 'all 0.3s ease',
-    '&:focus': {
-      borderColor: '#ffeb3b',
-      boxShadow: '0 0 0 3px rgba(255, 235, 59, 0.3)',
-      outline: 'none',
-    },
-    '&::placeholder': {
-      color: 'rgba(255, 255, 255, 0.7)',
-    },
   },
   vehicleTypeContainer: {
     position: 'relative',
@@ -369,20 +389,17 @@ const styles = {
     border: '2px solid rgba(255, 255, 255, 0.3)',
     borderRadius: '6px',
     fontSize: '16px',
-    color: 'white',
+    color: 'black', // Changed to black
     cursor: 'pointer',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     transition: 'all 0.3s ease',
-    '&:hover': {
-      borderColor: '#ffeb3b',
-    },
   },
   arrowIcon: {
     fontSize: '12px',
     transition: 'transform 0.3s ease',
-    color: 'white',
+    color: 'black', // Changed to black
   },
   vehicleOptions: {
     position: 'absolute',
@@ -399,15 +416,10 @@ const styles = {
   },
   vehicleOption: {
     padding: '12px',
-    color: 'white',
+    color: 'black', // Changed to black
     cursor: 'pointer',
     transition: 'all 0.2s ease',
-    '&:hover': {
-      backgroundColor: 'rgba(255, 235, 59, 0.3)',
-      color: '#ffeb3b',
-    },
   },
-
   fileUpload: {
     textAlign: 'left',
     marginTop: '10px',
@@ -444,9 +456,6 @@ const styles = {
     transition: 'all 0.3s ease, transform 0.2s ease',
     boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
     marginTop: '15px',
-    '&:active': {
-      transform: 'translateY(1px)',
-    },
   },
   disabledButton: { backgroundColor: '#8BC34A', cursor: 'not-allowed' },
   loginText: {
@@ -455,11 +464,10 @@ const styles = {
     fontSize: '14px',
   },
   link: {
-    color: '#4CAF50',
+    color: '#FF9800', // Changed login link color to match the signup color from login page
     textDecoration: 'none',
-    transition: 'all 0.3s ease',
-    letterSpacing: '0.5px',
-    fontWeight: '600',
+    transition: 'color 0.3s ease, transform 0.3s ease',
+    display: 'inline-block',
   },
   errorText: {
     color: '#ffccbc',
