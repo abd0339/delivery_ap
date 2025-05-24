@@ -267,7 +267,7 @@ const ShopOwnerDashboard = () => {
                   <tbody>
                     {orders.map((order, index) => (
                       <tr 
-                        key={order.id} 
+                        key={order.order_id} 
                         style={{
                           ...(index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd),
                           ...(hoveredItem === `row-${order.id}` && styles.tableRowHover)
@@ -275,7 +275,7 @@ const ShopOwnerDashboard = () => {
                         onMouseEnter={() => setHoveredItem(`row-${order.id}`)}
                         onMouseLeave={() => setHoveredItem(null)}
                       >
-                        <td style={styles.tableCell}>{order.id}</td>
+                        <td style={styles.tableCell}>{order.order_id}</td>
                         <td style={styles.tableCell}>{order.customer_id}</td>
                         <td style={styles.tableCell}>{formatCurrency(order.total_amount)}</td>
                         <td style={styles.tableCell}>
@@ -290,12 +290,12 @@ const ShopOwnerDashboard = () => {
                           </span>
                         </td>
                         <td style={styles.tableCell}>
-                          <button 
+                          <button onClick={() => navigate(`/track-order/${order.order_id}`)}
                             style={{
                               ...styles.viewButton,
-                              ...(hoveredItem === `view-${order.id}` && styles.viewButtonHover)
+                              ...(hoveredItem === `view-${order.order_id}` && styles.viewButtonHover)
                             }}
-                            onMouseEnter={() => setHoveredItem(`view-${order.id}`)}
+                            onMouseEnter={() => setHoveredItem(`view-${order.order_id}`)}
                             onMouseLeave={() => setHoveredItem(null)}
                           >
                             View

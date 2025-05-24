@@ -47,7 +47,8 @@ io.on('connection', (socket) => {
     const driverId = socket.handshake.query.driverId;
     if (driverId) {
       updateDriverLocation(driverId, { lat, lng });
-      socket.broadcast.emit(`orderLocationUpdate:${orderId}`, { lat, lng });
+      io.to(orderId).emit(`orderLocationUpdate:${orderId}`, { lat, lng });
+      console.log(`📍 Emitted location to room ${orderId}:`, { lat, lng });
     }
   });
 

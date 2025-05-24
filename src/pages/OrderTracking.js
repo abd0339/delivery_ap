@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { GoogleMap, LoadScript, Marker, DirectionsRenderer } from '@react-google-maps/api';
 import axios from 'axios';
@@ -29,7 +29,16 @@ const OrderTracking = () => {
   const [routeDistance, setRouteDistance] = useState('');
 
 
-  const destination = order ? JSON.parse(order.delivery_address) : null;
+  const destination = useMemo(() => {
+    try {
+      if (!order) return null;
+      const parsed = JSON.parse(order.delivery_address);
+      return (parsed && parsed.lat && parsed.lng) ? parsed : null;
+    } catch (e) {
+      console.error("❌ Error parsing delivery address:", e);
+      return null;
+    }
+  }, [order]);
 
   const handleMarkDelivered = async () => {
     try {
@@ -50,7 +59,9 @@ const OrderTracking = () => {
 
   // 2. Set up socket and listen to driver location
   useEffect(() => {
-    const socket = io(SOCKET_SERVER_URL);
+    const socket = io(SOCKET_SERVER_URL, {
+      query: { driverId }
+    });
     socketRef.current = socket;
 
     socket.on('connect', () => {
@@ -72,6 +83,7 @@ const OrderTracking = () => {
 
     socket.on(`orderLocationUpdate:${orderId}`, (data) => {
       const location = { lat: data.lat, lng: data.lng };
+      console.log("📡 Location received from server:", location);
       setDriverLocation(location);
     });
 
@@ -100,6 +112,9 @@ const OrderTracking = () => {
 
   // 3. Use Google Maps Directions API when both points are ready
   useEffect(() => {
+    console.log("📍 Driver Location:", driverLocation);
+    console.log("🏁 Destination:", destination);
+    console.log("🧭 Directions:", directions);
     if (!driverLocation || !destination) return;
 
     const service = new window.google.maps.DirectionsService();
@@ -176,7 +191,7 @@ const styles = {
     maxWidth: '400px',
     fontSize: '15px'
   },
-  
+
 };
 
 export default OrderTracking;

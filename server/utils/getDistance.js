@@ -26,7 +26,7 @@ const getDistance = async (origin, destination) => {
     }
 
     // Check valid response structure
-    if (!data.rows?.[0]?.elements?.[0]?.distance?.value)
+    if (!data.rows.[0].elements.[0].distance.value)
     {
       throw new Error('Invalid response structure from Google API');
     }
