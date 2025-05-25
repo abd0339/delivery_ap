@@ -135,43 +135,12 @@ module.exports = (io) => {
 
         let assignedDriver = {};
 
-        // Auto-assign if it's a package and deliveryInfo is location
-        if (orderType === 'package' && typeof deliveryInfo !== 'string') {
-          const autoAssignDriver = require('../utils/autoAssignDriver');
-          assignedDriver = await autoAssignDriver({
-            originAddress,
-            length,
-            weight,
-            orderType
-          });
-
-          // If a driver is found, update the order in DB
-          if (assignedDriver && assignedDriver.driverId) {
-            await pool.query(
-              'UPDATE orders SET driver_id = ?, status = "accepted" WHERE order_id = ?',
-              [assignedDriver.driverId, orderResult.insertId]
-            );
-            const ioInstance = req.app.get('io');
-            ioInstance.to(`driver:${assignedDriver.driverId}`).emit('newAssignedOrder', {
-              orderId: orderResult.insertId,
-              origin: originAddress,
-              destination: deliveryInfo,
-              total: totalAmount
-            });
-          }
-        }
-
         res.json({
           success: true,
           orderId: orderResult.insertId,
           totalAmount,
           predictedPrice,
-          autoAssignedTo:
-          assignedDriver.driverId || null
         });
-
-
-
       } catch (transactionError) {
         await connection.rollback();
         throw transactionError;
@@ -205,16 +174,27 @@ module.exports = (io) => {
   });
 
   // Get available (pending) orders
-  router.get('/available', async (req, res) => {
-    try {
-      const [orders] = await pool.query(
-        'SELECT * FROM orders WHERE status = "pending"'
-      );
-      res.json(orders);
-    } catch (error) {
-      res.status(500).json({ success: false, message: 'Failed to fetch available orders' });
-    }
-  });
+  // Get available (pending) orders
+router.get('/available', async (req, res) => {
+  const { vehicleType } = req.query;
+
+  let query = 'SELECT * FROM orders WHERE status = "pending"';
+  let params = [];
+
+  if (vehicleType === 'moto') {
+    query += ' AND order_type = "simple"';
+  } else if (vehicleType === 'car') {
+    query += ' AND order_type = "package"';
+  }
+
+  try {
+    const [orders] = await pool.query(query, params);
+    res.json(orders);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Failed to fetch available orders' });
+  }
+});
 
   // Get current orders for a driver
   router.get('/current/:driverId', async (req, res) => {

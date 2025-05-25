@@ -90,12 +90,16 @@ const driverRoutes = require('./routes/register-driver');
 const profileRoutes = require('./routes/profile');
 const verificationRoutes = require('./routes/verfi');
 const customerRoutes = require('./routes/customer');
+const driverInfoRoutes = require('./routes/driver');
+
+
 
 app.use('/auth', authRoutes);
 app.use('/admin', adminRoutes);
 app.use('/orders', ordersRoutes(io));
 app.use('/wallet', walletRoutes);
 app.use('/register-driver', driverRoutes);
+app.use('/drivers', driverInfoRoutes);
 app.use('/register-customer', registerCustomerRoutes);
 app.use('/customers', customerRoutes);
 app.use('/verification', verificationRoutes);

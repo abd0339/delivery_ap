@@ -13,6 +13,7 @@ const DriverDashboard = () => {
   const [availableOrders, setAvailableOrders] = useState([]);
   const [currentOrders, setCurrentOrders] = useState([]);
   const [balance, setBalance] = useState('$0.00');
+  const [vehicleType, setVehicleType] = useState(null);
   const [verificationStatus, setVerificationStatus] = useState({
     isVerified: false,
     status: 'pending'
@@ -28,10 +29,10 @@ const DriverDashboard = () => {
 
     socket.on('connect', () => {
       if (driverId) {
-        socket.emit('registerDriver', driverId); 
+        socket.emit('registerDriver', driverId);
       }
     });
-  
+
     if (socket && driverId) {
       socket.on('newAssignedOrder', (data) => {
         toast.success(`📦 New Order Assigned! Order #${data.orderId}`, {
@@ -40,22 +41,24 @@ const DriverDashboard = () => {
           pauseOnHover: true,
           draggable: true
         });
-  
+
         notificationSound.play();
-  
+
         setTimeout(() => {
           navigate(`/track-order/${data.orderId}`);
         }, 3000);
       });
     }
-  
+
     const fetchData = async () => {
       if (!driverId) {
         setError("Driver not logged in. Please log in.");
         setLoading(false);
         return;
       }
-  
+      const driverRes = await axios.get(`http://localhost:3001/drivers/${driverId}`);
+      setVehicleType(driverRes.data.vehicle_type);
+
       try {
         const [
           availableOrdersRes,
@@ -63,19 +66,19 @@ const DriverDashboard = () => {
           walletRes,
           verificationRes
         ] = await Promise.all([
-          axios.get('http://localhost:3001/orders/available'),
+          axios.get(`http://localhost:3001/orders/available?vehicleType=${driverRes.data.vehicle_type}`),
           axios.get(`http://localhost:3001/orders/current/${driverId}`),
           axios.get(`http://localhost:3001/wallet/driver/${driverId}`),
           axios.get(`http://localhost:3001/verification/status/${driverId}`)
         ]);
-  
+
         setAvailableOrders(availableOrdersRes.data);
         setCurrentOrders(currentOrdersRes.data);
-  
+
         const rawBalance = walletRes.data.balance;
         const numericBalance = parseFloat(rawBalance) || 0;
         setBalance(`$${numericBalance.toFixed(2)}`);
-  
+
         if (verificationRes.data.success) {
           setVerificationStatus({
             isVerified: verificationRes.data.isVerified,
@@ -89,13 +92,13 @@ const DriverDashboard = () => {
         setLoading(false);
       }
     };
-  
+
     fetchData();
-  
+
     return () => {
       if (socketRef.current) socketRef.current.disconnect();
     };
-  }, []);  
+  }, []);
 
   const handleAcceptOrder = async (orderId) => {
     const driverId = localStorage.getItem("driverId");
@@ -260,7 +263,7 @@ const DriverDashboard = () => {
           }
         `}
       </style>
-      
+
       <header style={styles.header}>
         <div style={styles.headerContent}>
           <h1 style={styles.headerTitle}>Driver Dashboard</h1>
