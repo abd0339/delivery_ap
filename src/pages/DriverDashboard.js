@@ -143,15 +143,133 @@ const DriverDashboard = () => {
 
   return (
     <div style={styles.container}>
+      <style>
+        {`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          
+          .nav-link {
+            color: white;
+            text-decoration: none;
+            font-size: 1rem;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            position: relative;
+            transition: all 0.3s ease;
+            background: transparent;
+          }
+          
+          .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px);
+            color: #f0f0f0;
+          }
+          
+          .logout-button {
+            background-color: transparent;
+            color: white;
+            border: 2px solid white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+          }
+          
+          .logout-button:hover {
+            background-color: white;
+            color: #4f46e5;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
+          }
+          
+          .logout-button:hover .logout-icon {
+            transform: translateX(3px);
+          }
+          
+          .wallet-link, .verify-link {
+            color: #4f46e5;
+            text-decoration: none;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            background: transparent;
+          }
+          
+          .wallet-link:hover, .verify-link:hover {
+            background-color: rgba(79, 70, 229, 0.1);
+            color: #3730a3;
+            transform: translateX(3px);
+          }
+          
+          .wallet-link:hover .link-arrow, .verify-link:hover .link-arrow {
+            transform: translateX(4px);
+          }
+          
+          .accept-button {
+            background: linear-gradient(135deg, #4f46e5, #6366f1);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            width: 100%;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+          }
+          
+          .accept-button:hover {
+            background: linear-gradient(135deg, #4338ca, #5b21b6);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(79, 70, 229, 0.4);
+          }
+          
+          .accept-button:active {
+            transform: translateY(-1px);
+          }
+          
+          .order-card, .balance-card, .verification-card {
+            transition: all 0.3s ease;
+          }
+          
+          .order-card:hover, .balance-card:hover, .verification-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
+          }
+          
+          .card-icon {
+            transition: all 0.3s ease;
+          }
+          
+          .balance-card:hover .card-icon,
+          .verification-card:hover .card-icon {
+            transform: scale(1.1) rotate(5deg);
+          }
+        `}
+      </style>
+      
       <header style={styles.header}>
         <div style={styles.headerContent}>
           <h1 style={styles.headerTitle}>Driver Dashboard</h1>
           <nav style={styles.nav}>
-            <Link to="/profile" style={styles.navLink}>Profile</Link>
-            <Link to="/wallet" style={styles.navLink}>Wallet</Link>
-            <button onClick={handleLogout} style={styles.logoutButton}>
+            <Link to="/profile" className="nav-link">Profile</Link>
+            <Link to="/wallet" className="nav-link">Wallet</Link>
+            <button onClick={handleLogout} className="logout-button">
               Logout
-              <span style={styles.logoutIcon}>→</span>
+              <span className="logout-icon" style={styles.logoutIcon}>→</span>
             </button>
           </nav>
         </div>
@@ -159,17 +277,17 @@ const DriverDashboard = () => {
 
       <div style={styles.content}>
         <div style={styles.statusSection}>
-          <div style={styles.balanceCard}>
-            <div style={styles.cardIcon}>💰</div>
+          <div className="balance-card" style={styles.balanceCard}>
+            <div className="card-icon" style={styles.cardIcon}>💰</div>
             <h3 style={styles.cardTitle}>Wallet Balance</h3>
             <p style={styles.balanceAmount}>{balance}</p>
-            <Link to="/wallet" style={styles.walletLink}>
+            <Link to="/wallet" className="wallet-link">
               View Transactions
-              <span style={styles.linkArrow}>→</span>
+              <span className="link-arrow" style={styles.linkArrow}>→</span>
             </Link>
           </div>
-          <div style={styles.verificationCard}>
-            <div style={styles.cardIcon}>
+          <div className="verification-card" style={styles.verificationCard}>
+            <div className="card-icon" style={styles.cardIcon}>
               {verificationStatus.isVerified ? '✅' : '🆔'}
             </div>
             <h3 style={styles.cardTitle}>ID Verification</h3>
@@ -180,9 +298,9 @@ const DriverDashboard = () => {
                 <p style={styles.notVerifiedText}>
                   {verificationStatus.status.charAt(0).toUpperCase() + verificationStatus.status.slice(1)}
                 </p>
-                <Link to="/id-verification" style={styles.verifyLink}>
+                <Link to="/id-verification" className="verify-link">
                   Verify Now
-                  <span style={styles.linkArrow}>→</span>
+                  <span className="link-arrow" style={styles.linkArrow}>→</span>
                 </Link>
                 </>
               )}
@@ -199,7 +317,7 @@ const DriverDashboard = () => {
               </div>
             ) : (
                 availableOrders.map((order) => (
-                  <div key={order.order_id} style={styles.orderCard}>
+                  <div key={order.order_id} className="order-card" style={styles.orderCard}>
                     <div style={styles.orderHeader}>
                       <span style={styles.orderNumber}>Order #{order.order_id}</span>
                       <span style={styles.orderAmount}>${parseFloat(order.total_amount).toFixed(2)}</span>
@@ -216,7 +334,7 @@ const DriverDashboard = () => {
                     </div>
                     <button
                       onClick={() => handleAcceptOrder(order.order_id)}
-                      style={styles.acceptButton}
+                      className="accept-button"
                     >
                       Accept Order
                   </button>
@@ -236,7 +354,7 @@ const DriverDashboard = () => {
               </div>
             ) : (
                 currentOrders.map((order) => (
-                  <div key={order.order_id} style={styles.orderCard}>
+                  <div key={order.order_id} className="order-card" style={styles.orderCard}>
                     <div style={styles.orderHeader}>
                       <span style={styles.orderNumber}>Order #{order.order_id}</span>
                       <span style={styles.orderStatus} data-status={order.status}>
@@ -277,11 +395,27 @@ const styles = {
   container: {
     fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif",
     minHeight: '100vh',
-    backgroundColor: '#f5f7fa',
+    backgroundImage: 'url("/images/driverDashboard.png")',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+    backgroundAttachment: 'fixed',
+    position: 'relative',
     color: '#333',
   },
+  backgroundOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    backdropFilter: 'blur(8px)',
+    WebkitBackdropFilter: 'blur(8px)',
+    zIndex: 1,
+  },
   header: {
-    backgroundColor: '#4f46e5',
+    backgroundColor: 'rgba(255, 16, 16, 0.7)',
     padding: '1.5rem 0',
     boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
   },
@@ -303,55 +437,10 @@ const styles = {
   nav: {
     display: 'flex',
     alignItems: 'center',
-    gap: '1.5rem',
-  },
-  navLink: {
-    color: 'white',
-    textDecoration: 'none',
-    fontSize: '1rem',
-    fontWeight: '500',
-    padding: '0.5rem 0',
-    position: 'relative',
-    transition: 'all 0.2s ease',
-    '&:hover': {
-      opacity: 0.9,
-    },
-    '&::after': {
-      content: '""',
-      position: 'absolute',
-      bottom: 0,
-      left: 0,
-      width: '0',
-      height: '2px',
-      backgroundColor: 'white',
-      transition: 'width 0.3s ease',
-    },
-    '&:hover::after': {
-      width: '100%',
-    },
-  },
-  logoutButton: {
-    backgroundColor: 'transparent',
-    color: 'white',
-    border: '1px solid white',
-    padding: '0.5rem 1rem',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '0.9rem',
-    fontWeight: '500',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    transition: 'all 0.2s ease',
-    '&:hover': {
-      backgroundColor: 'rgba(255,255,255,0.1)',
-    },
+    gap: '1rem',
   },
   logoutIcon: {
-    transition: 'transform 0.2s ease',
-  },
-  'logoutButton:hover $logoutIcon': {
-    transform: 'translateX(2px)',
+    transition: 'transform 0.3s ease',
   },
   content: {
     maxWidth: '1200px',
@@ -365,30 +454,23 @@ const styles = {
     marginBottom: '2rem',
   },
   balanceCard: {
-    backgroundColor: 'white',
+    backgroundColor: 'rgba(255, 132, 16, 0.97)',
     padding: '1.5rem',
     borderRadius: '12px',
     boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
-    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-    '&:hover': {
-      transform: 'translateY(-2px)',
-      boxShadow: '0 6px 12px rgba(0,0,0,0.1)',
-    },
+    cursor: 'default',
   },
   verificationCard: {
-    backgroundColor: 'white',
+    backgroundColor: 'rgba(255, 132, 16, 0.97)',
     padding: '1.5rem',
     borderRadius: '12px',
     boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
-    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-    '&:hover': {
-      transform: 'translateY(-2px)',
-      boxShadow: '0 6px 12px rgba(0,0,0,0.1)',
-    },
+    cursor: 'default',
   },
   cardIcon: {
     fontSize: '2rem',
     marginBottom: '1rem',
+    display: 'inline-block',
   },
   cardTitle: {
     fontSize: '1.2rem',
@@ -402,35 +484,8 @@ const styles = {
     margin: '0.5rem 0 1rem 0',
     color: '#4f46e5',
   },
-  walletLink: {
-    color: '#4f46e5',
-    textDecoration: 'none',
-    fontWeight: '500',
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '0.3rem',
-    transition: 'all 0.2s ease',
-    '&:hover': {
-      color: '#4338ca',
-    },
-  },
-  verifyLink: {
-    color: '#4f46e5',
-    textDecoration: 'none',
-    fontWeight: '500',
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '0.3rem',
-    transition: 'all 0.2s ease',
-    '&:hover': {
-      color: '#4338ca',
-    },
-  },
   linkArrow: {
-    transition: 'transform 0.2s ease',
-  },
-  'walletLink:hover $linkArrow': {
-    transform: 'translateX(2px)',
+    transition: 'transform 0.3s ease',
   },
   verifiedText: {
     color: '#10b981',
@@ -452,16 +507,6 @@ const styles = {
     color: '#111827',
     position: 'relative',
     paddingBottom: '0.5rem',
-    '&::after': {
-      content: '""',
-      position: 'absolute',
-      bottom: 0,
-      left: 0,
-      width: '50px',
-      height: '3px',
-      backgroundColor: '#4f46e5',
-      borderRadius: '3px',
-    },
   },
   ordersList: {
     display: 'grid',
@@ -469,15 +514,11 @@ const styles = {
     gap: '1.5rem',
   },
   orderCard: {
-    backgroundColor: 'white',
+    backgroundColor: 'rgba(255, 251, 16, 0.97)',
     padding: '1.5rem',
     borderRadius: '12px',
     boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
-    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-    '&:hover': {
-      transform: 'translateY(-2px)',
-      boxShadow: '0 6px 12px rgba(0,0,0,0.1)',
-    },
+    cursor: 'default',
   },
   orderHeader: {
     display: 'flex',
@@ -502,22 +543,6 @@ const styles = {
     borderRadius: '9999px',
     fontSize: '0.8rem',
     textTransform: 'capitalize',
-    '&[data-status="pending"]': {
-      backgroundColor: '#fef3c7',
-      color: '#92400e',
-    },
-    '&[data-status="accepted"]': {
-      backgroundColor: '#dbeafe',
-      color: '#1e40af',
-    },
-    '&[data-status="picked-up"]': {
-      backgroundColor: '#d1fae5',
-      color: '#065f46',
-    },
-    '&[data-status="delivered"]': {
-      backgroundColor: '#dcfce7',
-      color: '#166534',
-    },
   },
   orderDetails: {
     marginBottom: '1.5rem',
@@ -531,24 +556,6 @@ const styles = {
     fontWeight: '600',
     minWidth: '80px',
     color: '#6b7280',
-  },
-  acceptButton: {
-    backgroundColor: '#4f46e5',
-    color: 'white',
-    border: 'none',
-    padding: '0.75rem 1.5rem',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontWeight: '600',
-    width: '100%',
-    transition: 'all 0.2s ease',
-    '&:hover': {
-      backgroundColor: '#4338ca',
-      transform: 'translateY(-1px)',
-    },
-    '&:active': {
-      transform: 'translateY(0)',
-    },
   },
   progressBar: {
     height: '6px',
@@ -604,10 +611,6 @@ const styles = {
     padding: '2rem',
     borderRadius: '12px',
     border: '1px solid rgba(239, 68, 68, 0.2)',
-  },
-  '@keyframes spin': {
-    '0%': { transform: 'rotate(0deg)' },
-    '100%': { transform: 'rotate(360deg)' },
   },
 };
 
