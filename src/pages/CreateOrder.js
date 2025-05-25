@@ -139,11 +139,19 @@ const CreateOrder = () => {
     }
     setIsSubmitting(true);
 
+    const getFormattedOrigin = () => {
+      if (originAddress.startsWith("Lat:")) {
+        const match = originAddress.match(/Lat:(-?\d+(\.\d+)?),Lng:(-?\d+(\.\d+)?)/);
+        return match ? `${match[1]},${match[3]}` : originAddress;
+      }
+      return originAddress;
+    };
+
     const orderData = {
       customerId,
       orderType,
       serialNumber: serialNumber || null,
-      originAddress,
+      originAddress: getFormattedOrigin(),
       deliveryInfo: showMap ? deliveryCoords : deliveryPhone,
       paymentMethod,
       packagePrice: parseFloat(packagePrice),
@@ -338,7 +346,7 @@ const CreateOrder = () => {
                 <LoadScript googleMapsApiKey="AIzaSyDBz09hJefhlXJUFtOd9p34dSa9aHO0lz4">
                   <GoogleMap
                     mapContainerStyle={mapContainerStyle}
-                    center={{ lat: 33.8938, lng: 35.5018 }}
+                    center={{ lat: 34.4367, lng: 35.8497 }}
                     zoom={12}
                     onClick={handleMapClick}
                   >

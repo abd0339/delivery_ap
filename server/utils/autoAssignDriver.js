@@ -9,6 +9,14 @@ async function autoAssignDriver({ originAddress, length, weight, orderType }) {
   if (availableDrivers.length === 0) return null;
 
   const type = orderType === 'package' ? 1 : 0;
+  try {
+    const parsed = JSON.parse(originAddress);
+    if (parsed.lat && parsed.lng) {
+      originAddress = `${parsed.lat},${parsed.lng}`;
+    }
+  } catch (err) {
+    console.error(`error in orginAddress/from the autoassingdriver`);
+  }
 
   let bestDriver = null;
   let shortestDistance = Infinity;

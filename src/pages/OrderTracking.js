@@ -28,17 +28,47 @@ const OrderTracking = () => {
   const [routeDuration, setRouteDuration] = useState('');
   const [routeDistance, setRouteDistance] = useState('');
 
-
-  const destination = useMemo(() => {
+  function parseLatLngFromText(text) {
     try {
-      if (!order) return null;
-      const parsed = JSON.parse(order.delivery_address);
-      return (parsed && parsed.lat && parsed.lng) ? parsed : null;
-    } catch (e) {
-      console.error("❌ Error parsing delivery address:", e);
+      if (!text || typeof text !== 'string') return null;
+  
+      if (text.includes('Lat:') && text.includes('Lng:')) {
+        const match = text.match(/Lat:([-+]?[0-9]*\.?[0-9]+),Lng:([-+]?[0-9]*\.?[0-9]+)/);
+        if (!match) return null;
+        return {
+          lat: parseFloat(match[1]),
+          lng: parseFloat(match[2])
+        };
+      }
+  
+      // Fallback if it's a plain object string like {"lat":34.4,"lng":35.8}
+      const parsed = JSON.parse(text);
+      if (parsed && parsed.lat && parsed.lng) return parsed;
+  
+      return null;
+    } catch (err) {
+      console.error("❌ Failed to parse pickup location:", err);
       return null;
     }
+  }  
+
+  const { pickup, destination } = useMemo(() => {
+    if (!order) return { pickup: null, destination: null };
+
+    const delivery = (() => {
+      try {
+        const d = JSON.parse(order.delivery_address);
+        return d && d.lat && d.lng ? d : null;
+      } catch (err) {
+        return null;
+      }
+    })();
+
+    const pickupCoords = parseLatLngFromText(order.origin_address);
+
+    return { pickup: pickupCoords, destination: delivery };
   }, [order]);
+
 
   const handleMarkDelivered = async () => {
     try {
@@ -57,7 +87,7 @@ const OrderTracking = () => {
       .catch(() => console.error('Order fetch failed'));
   }, [orderId]);
 
-  // 2. Set up socket and listen to driver location
+  // 2. Set up socket and  driver location
   useEffect(() => {
     const socket = io(SOCKET_SERVER_URL, {
       query: { driverId }
@@ -114,25 +144,35 @@ const OrderTracking = () => {
   useEffect(() => {
     console.log("📍 Driver Location:", driverLocation);
     console.log("🏁 Destination:", destination);
+    console.log("📦 Pickup:", pickup);
     console.log("🧭 Directions:", directions);
-    if (!driverLocation || !destination) return;
+    if (!driverLocation || !pickup || !destination) return;
 
     const service = new window.google.maps.DirectionsService();
+
     service.route({
       origin: driverLocation,
-      destination: { lat: destination.lat, lng: destination.lng },
+      destination,
+      waypoints: [
+        { location: pickup, stopover: true }
+      ],
       travelMode: window.google.maps.TravelMode.DRIVING
     }, (result, status) => {
       if (status === 'OK') {
         setDirections(result);
-        const leg = result.routes[0].legs[0];
-        setRouteDuration(leg.duration.text);
-        setRouteDistance(leg.distance.text);
+        // Combine distances and durations from both legs
+        const leg1 = result.routes[0].legs[0];
+        const leg2 = result.routes[0].legs[1];
+        const totalDuration = `${leg1.duration.text} + ${leg2.duration.text}`;
+        const totalDistance = `${leg1.distance.text} + ${leg2.distance.text}`;
+        setRouteDuration(totalDuration);
+        setRouteDistance(totalDistance);
       } else {
         console.error('Directions request failed due to', status);
       }
     });
-  }, [driverLocation, destination]);
+
+  }, [driverLocation, pickup, destination]);
 
   return (
     <div style={styles.container}>
@@ -142,8 +182,9 @@ const OrderTracking = () => {
           center={driverLocation || { lat: 33.89, lng: 35.5 }}
           zoom={13}
         >
-          {driverLocation && <Marker position={driverLocation} label="You" />}
-          {destination && <Marker position={{ lat: destination.lat, lng: destination.lng }} label="Delivery" />}
+          {driverLocation && <Marker position={driverLocation} label="Driver" />}
+          {pickup && typeof pickup === 'object' && <Marker position={pickup} label="📦 Pickup" />}
+          {destination && <Marker position={destination} label="Drop-off" />}
           {directions && <DirectionsRenderer directions={directions} />}
         </GoogleMap>
       </LoadScript>
