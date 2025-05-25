@@ -353,7 +353,7 @@ const AdminDashboard = () => {
 const styles = {
   container: { 
     fontFamily: "'Inter', sans-serif",
-    background: 'linear-gradient(rgba(245, 245, 245, 0.95), rgba(245, 245, 245, 0.95)), url("https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80")',
+    backgroundImage: 'url("/images/adminDashboard2.png")',
     backgroundSize: 'cover',
     backgroundAttachment: 'fixed',
     minHeight: '100vh',
@@ -422,7 +422,7 @@ const styles = {
     boxShadow: '0 2px 10px rgba(52, 152, 219, 0.3)'
   },
   header: {
-    background: 'linear-gradient(135deg, #2c3e50 0%, #3498db 100%)',
+    background: 'linear-gradient(135deg,rgb(21, 157, 167) 0%,rgb(189, 8, 8) 100%)',
     color: 'white',
     padding: '0 20px',
     boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
@@ -490,7 +490,7 @@ const styles = {
     marginBottom: '40px'
   },
   analyticsCard: {
-    background: 'white',
+    background: 'yellow',
     padding: '25px',
     borderRadius: '12px',
     boxShadow: '0 5px 15px rgba(0,0,0,0.08)',
@@ -537,7 +537,7 @@ const styles = {
     background: 'linear-gradient(to right, #3498db, #2c3e50)'
   },
   section: {
-    background: 'white',
+    background: 'orange',
     padding: '30px',
     borderRadius: '12px',
     boxShadow: '0 5px 15px rgba(0,0,0,0.08)',
