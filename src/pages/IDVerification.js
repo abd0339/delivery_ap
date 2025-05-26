@@ -191,9 +191,15 @@ const styles = {
     background: 'linear-gradient(135deg, #f5f7fa 0%, #e4e8ed 100%)',
     padding: '20px',
     fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif",
+    backgroundImage: 'url("/images/idVerification.png")',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundAttachment: 'fixed',
+    position: 'relative',
+
   },
   cardContainer: {
-    backgroundColor: 'white',
+    background: 'rgba(202, 183, 183, 0.82)',
     padding: '40px',
     borderRadius: '16px',
     boxShadow: '0 10px 30px rgba(0, 0, 0, 0.08)',
@@ -544,3 +550,4 @@ const styles = {
 };
 
 export default IDVerification;
+
