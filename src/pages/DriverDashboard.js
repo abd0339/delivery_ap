@@ -13,7 +13,6 @@ const DriverDashboard = () => {
   const [availableOrders, setAvailableOrders] = useState([]);
   const [currentOrders, setCurrentOrders] = useState([]);
   const [balance, setBalance] = useState('$0.00');
-  const [vehicleType, setVehicleType] = useState(null);
   const [verificationStatus, setVerificationStatus] = useState({
     isVerified: false,
     status: 'pending'
@@ -29,10 +28,10 @@ const DriverDashboard = () => {
 
     socket.on('connect', () => {
       if (driverId) {
-        socket.emit('registerDriver', driverId);
+        socket.emit('registerDriver', driverId); 
       }
     });
-
+  
     if (socket && driverId) {
       socket.on('newAssignedOrder', (data) => {
         toast.success(`📦 New Order Assigned! Order #${data.orderId}`, {
@@ -41,24 +40,22 @@ const DriverDashboard = () => {
           pauseOnHover: true,
           draggable: true
         });
-
+  
         notificationSound.play();
-
+  
         setTimeout(() => {
           navigate(`/track-order/${data.orderId}`);
         }, 3000);
       });
     }
-
+  
     const fetchData = async () => {
       if (!driverId) {
         setError("Driver not logged in. Please log in.");
         setLoading(false);
         return;
       }
-      const driverRes = await axios.get(`http://localhost:3001/drivers/${driverId}`);
-      setVehicleType(driverRes.data.vehicle_type);
-
+  
       try {
         const [
           availableOrdersRes,
@@ -66,19 +63,19 @@ const DriverDashboard = () => {
           walletRes,
           verificationRes
         ] = await Promise.all([
-          axios.get(`http://localhost:3001/orders/available?vehicleType=${driverRes.data.vehicle_type}`),
+          axios.get('http://localhost:3001/orders/available'),
           axios.get(`http://localhost:3001/orders/current/${driverId}`),
           axios.get(`http://localhost:3001/wallet/driver/${driverId}`),
           axios.get(`http://localhost:3001/verification/status/${driverId}`)
         ]);
-
+  
         setAvailableOrders(availableOrdersRes.data);
         setCurrentOrders(currentOrdersRes.data);
-
+  
         const rawBalance = walletRes.data.balance;
         const numericBalance = parseFloat(rawBalance) || 0;
         setBalance(`$${numericBalance.toFixed(2)}`);
-
+  
         if (verificationRes.data.success) {
           setVerificationStatus({
             isVerified: verificationRes.data.isVerified,
@@ -92,13 +89,13 @@ const DriverDashboard = () => {
         setLoading(false);
       }
     };
-
+  
     fetchData();
-
+  
     return () => {
       if (socketRef.current) socketRef.current.disconnect();
     };
-  }, []);
+  }, []);  
 
   const handleAcceptOrder = async (orderId) => {
     const driverId = localStorage.getItem("driverId");
@@ -263,7 +260,7 @@ const DriverDashboard = () => {
           }
         `}
       </style>
-
+      
       <header style={styles.header}>
         <div style={styles.headerContent}>
           <h1 style={styles.headerTitle}>Driver Dashboard</h1>
@@ -395,32 +392,24 @@ const DriverDashboard = () => {
 };
 
 const styles = {
-  container: {
-    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif",
-    minHeight: '100vh',
-    backgroundImage: 'url("/images/driverDashboard.png")',
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    backgroundRepeat: 'no-repeat',
-    backgroundAttachment: 'fixed',
-    position: 'relative',
-    color: '#333',
-  },
-  backgroundOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
-    backdropFilter: 'blur(8px)',
-    WebkitBackdropFilter: 'blur(8px)',
-    zIndex: 1,
-  },
-  header: {
-    backgroundColor: 'rgba(255, 16, 16, 0.7)',
+container: {
+  fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif",
+  minHeight: '100vh',
+  background: 'linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%)',
+  position: 'relative',
+  color: '#2d3748',
+  backgroundImage: 'url("/images/driverDashboard2.png")',
+  backgroundRepeat: 'no-repeat',
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
+},
+header: {
+    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
     padding: '1.5rem 0',
-    boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+    position: 'sticky',
+    top: 0,
+    zIndex: 100,
   },
   headerContent: {
     maxWidth: '1200px',
@@ -434,167 +423,221 @@ const styles = {
     margin: 0,
     color: 'white',
     fontSize: '1.8rem',
-    fontWeight: '600',
+    fontWeight: '700',
     letterSpacing: '-0.5px',
+    textShadow: '1px 1px 2px rgba(0,0,0,0.1)',
   },
   nav: {
     display: 'flex',
     alignItems: 'center',
-    gap: '1rem',
+    gap: '1.5rem',
   },
   logoutIcon: {
     transition: 'transform 0.3s ease',
   },
   content: {
     maxWidth: '1200px',
-    margin: '2rem auto',
+    margin: '3rem auto',
     padding: '0 2rem',
   },
   statusSection: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-    gap: '1.5rem',
-    marginBottom: '2rem',
+    gap: '2rem',
+    marginBottom: '3rem',
   },
   balanceCard: {
-    backgroundColor: 'rgba(255, 132, 16, 0.97)',
-    padding: '1.5rem',
-    borderRadius: '12px',
-    boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
+    background: 'rgba(202, 183, 183, 0.82)',
+    padding: '2rem',
+    borderRadius: '16px',
+    boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)',
     cursor: 'default',
+    border: '1px solid rgba(0,0,0,0.05)',
+    transition: 'transform 0.3s ease, box-shadow 0.3s ease',
   },
   verificationCard: {
-    backgroundColor: 'rgba(255, 132, 16, 0.97)',
-    padding: '1.5rem',
-    borderRadius: '12px',
-    boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
+    background: 'rgba(202, 183, 183, 0.82)',
+    padding: '2rem',
+    borderRadius: '16px',
+    boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)',
     cursor: 'default',
+    border: '1px solid rgba(0,0,0,0.05)',
+    transition: 'transform 0.3s ease, box-shadow 0.3s ease',
   },
   cardIcon: {
-    fontSize: '2rem',
-    marginBottom: '1rem',
+    fontSize: '2.5rem',
+    marginBottom: '1.5rem',
     display: 'inline-block',
+    background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
   },
   cardTitle: {
-    fontSize: '1.2rem',
+    fontSize: '1.25rem',
     fontWeight: '600',
-    margin: '0 0 0.5rem 0',
-    color: '#111827',
+    margin: '0 0 0.75rem 0',
+    color: '#1f2937',
   },
   balanceAmount: {
-    fontSize: '2rem',
+    fontSize: '2.5rem',
     fontWeight: '700',
-    margin: '0.5rem 0 1rem 0',
-    color: '#4f46e5',
+    margin: '0.75rem 0 1.5rem 0',
+    background: 'linear-gradient(135deg, #10b981 0%, #3b82f6 100%)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
   },
   linkArrow: {
     transition: 'transform 0.3s ease',
+    marginLeft: '0.25rem',
   },
   verifiedText: {
     color: '#10b981',
-    fontWeight: '500',
-    margin: '0.5rem 0',
+    fontWeight: '600',
+    margin: '0.75rem 0 1.5rem 0',
+    fontSize: '1.25rem',
   },
   notVerifiedText: {
     color: '#ef4444',
-    fontWeight: '500',
-    margin: '0.5rem 0',
+    fontWeight: '600',
+    margin: '0.75rem 0',
+    fontSize: '1.25rem',
   },
   ordersSection: {
-    marginTop: '2.5rem',
+    marginTop: '3rem',
+    background: 'rgba(202, 183, 183, 0.82)',
+    borderRadius: '16px',
+    padding: '2rem',
+    boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)',
+    border: '1px solid rgba(0,0,0,0.05)',
+    marginBottom: '3rem',
   },
   sectionTitle: {
     fontSize: '1.5rem',
-    fontWeight: '600',
-    marginBottom: '1.5rem',
-    color: '#111827',
+    fontWeight: '700',
+    marginBottom: '2rem',
+    color: '#1f2937',
     position: 'relative',
-    paddingBottom: '0.5rem',
+    paddingBottom: '0.75rem',
+    '&:after': {
+      content: '""',
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      width: '60px',
+      height: '4px',
+      background: 'linear-gradient(135deg, #ef4444 0%, #f59e0b 100%)',
+      borderRadius: '2px',
+    },
   },
   ordersList: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-    gap: '1.5rem',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+    gap: '2rem',
   },
   orderCard: {
-    backgroundColor: 'rgba(255, 251, 16, 0.97)',
-    padding: '1.5rem',
+    background: 'rgba(238, 255, 0, 0.9)',
+    padding: '1.75rem',
     borderRadius: '12px',
     boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
     cursor: 'default',
+    border: '1px solid rgba(0,0,0,0.05)',
+    transition: 'all 0.3s ease',
+    '&:hover': {
+      transform: 'translateY(-5px)',
+      boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+    },
   },
   orderHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: '1rem',
-    paddingBottom: '0.75rem',
+    marginBottom: '1.25rem',
+    paddingBottom: '1rem',
     borderBottom: '1px solid #e5e7eb',
   },
   orderNumber: {
-    fontWeight: '600',
-    color: '#111827',
+    fontWeight: '700',
+    color: '#1f2937',
+    fontSize: '1.1rem',
   },
   orderAmount: {
     fontWeight: '700',
-    color: '#4f46e5',
-    fontSize: '1.1rem',
+    color: '#10b981',
+    fontSize: '1.25rem',
   },
   orderStatus: {
     fontWeight: '600',
-    padding: '0.25rem 0.75rem',
+    padding: '0.35rem 0.85rem',
     borderRadius: '9999px',
-    fontSize: '0.8rem',
+    fontSize: '0.85rem',
     textTransform: 'capitalize',
+    '&[data-status="pending"]': {
+      backgroundColor: '#fef3c7',
+      color: '#92400e',
+    },
+    '&[data-status="accepted"]': {
+      backgroundColor: '#dbeafe',
+      color: '#1e40af',
+    },
+    '&[data-status="picked-up"]': {
+      backgroundColor: '#f0fdf4',
+      color: '#065f46',
+    },
+    '&[data-status="delivered"]': {
+      backgroundColor: '#ecfdf5',
+      color: '#047857',
+    },
   },
   orderDetails: {
-    marginBottom: '1.5rem',
+    marginBottom: '1.75rem',
   },
   detailItem: {
     display: 'flex',
-    marginBottom: '0.75rem',
-    fontSize: '0.95rem',
+    marginBottom: '1rem',
+    fontSize: '1rem',
+    lineHeight: '1.5',
   },
   detailLabel: {
     fontWeight: '600',
-    minWidth: '80px',
+    minWidth: '90px',
     color: '#6b7280',
   },
   progressBar: {
-    height: '6px',
+    height: '8px',
     backgroundColor: '#e5e7eb',
-    borderRadius: '3px',
-    marginTop: '1rem',
+    borderRadius: '4px',
+    marginTop: '1.5rem',
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#4f46e5',
-    borderRadius: '3px',
+    background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
+    borderRadius: '4px',
     transition: 'width 0.5s ease',
   },
   emptyState: {
     gridColumn: '1 / -1',
     textAlign: 'center',
-    padding: '3rem 0',
+    padding: '4rem 0',
     color: '#6b7280',
   },
   emptyIcon: {
-    fontSize: '3rem',
-    marginBottom: '1rem',
-    opacity: 0.5,
+    fontSize: '4rem',
+    marginBottom: '1.5rem',
+    opacity: 0.3,
   },
   loadingContainer: {
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
     height: '100vh',
+    background: 'rgba(255,255,255,0.8)',
   },
   spinner: {
-    width: '50px',
-    height: '50px',
-    border: '5px solid #e5e7eb',
-    borderTop: '5px solid #4f46e5',
+    width: '60px',
+    height: '60px',
+    border: '6px solid #e5e7eb',
+    borderTop: '6px solid #ef4444',
     borderRadius: '50%',
     animation: 'spin 1s linear infinite',
   },
@@ -604,17 +647,18 @@ const styles = {
     alignItems: 'center',
     height: '100vh',
     padding: '2rem',
+    background: 'rgba(255,255,255,0.9)',
   },
   errorText: {
     color: '#ef4444',
-    fontSize: '1.2rem',
+    fontSize: '1.25rem',
     textAlign: 'center',
     maxWidth: '600px',
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    padding: '2rem',
-    borderRadius: '12px',
+    background: 'rgba(239, 68, 68, 0.05)',
+    padding: '2.5rem',
+    borderRadius: '16px',
     border: '1px solid rgba(239, 68, 68, 0.2)',
+    boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
   },
 };
-
 export default DriverDashboard;
