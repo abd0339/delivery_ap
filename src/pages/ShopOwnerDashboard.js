@@ -1,101 +1,62 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-const AdminDashboard = () => {
-  const navigate = useNavigate();
-
-  const [users, setUsers] = useState([]);
+const ShopOwnerDashboard = () => {
   const [orders, setOrders] = useState([]);
-  const [verifications, setVerifications] = useState([]);
-  const [analytics, setAnalytics] = useState({
-    totalOrders: 0,
-    totalRevenue: '$0',
-    activeUsers: 0,
-  });
+  const [wallet, setWallet] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [activeSection, setActiveSection] = useState('dashboard');
+  const [hoveredItem, setHoveredItem] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchDashboardData = async () => {
       try {
-        const [usersRes, ordersRes, verRes, analyticsRes] = await Promise.all([
-          axios.get('http://localhost:3001/admin/users', { withCredentials: true }),
-          axios.get('http://localhost:3001/admin/orders', { withCredentials: true }),
-          axios.get('http://localhost:3001/admin/verification-requests', { withCredentials: true }),
-          axios.get('http://localhost:3001/admin/analytics', { withCredentials: true })
-        ]);
+        const shopOwnerId = localStorage.getItem("shopOwnerId");
+        console.log("Shop Owner ID:", shopOwnerId);
 
-        setUsers(usersRes.data.users || usersRes.data);
-        setOrders(ordersRes.data.orders || ordersRes.data);
-        setVerifications(verRes.data.requests || verRes.data);
-        setAnalytics(analyticsRes.data.analytics || analyticsRes.data);
+        if (!shopOwnerId) {
+          throw new Error("Shop owner ID not found. Please log in again.");
+        }
+        const ordersResponse = await axios.get(`http://localhost:3001/orders/shop/${shopOwnerId}`);
+        const walletResponse = await axios.get(`http://localhost:3001/wallet/shopowner/${shopOwnerId}`);
+        console.log("Orders:", ordersResponse.data);
+        console.log("Wallet:", walletResponse.data);
+
+        setOrders(ordersResponse.data);
+        setWallet(walletResponse.data);
       } catch (err) {
-        console.error('Fetch error:', err);
-        setError('Failed to fetch data');
+        console.error('Dashboard fetch error:', err);
+        setError('Failed to load dashboard data');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
+    fetchDashboardData();
   }, []);
 
-  const fetchVerifications = async () => {
-    try {
-      const response = await fetch("http://localhost:3001/admin/driver-verifications");
-      const data = await response.json();
-      setVerifications(data);
-    } catch (error) {
-      console.error("Failed to fetch verifications:", error);
-    }
-  };
-
-  const handleVerify = async (driverId, status) => {
-    try {
-      const response = await fetch("http://localhost:3001/admin/verify", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ driverId, status }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        alert("Driver status updated successfully!");
-        fetchVerifications();
-      } else {
-        alert("Error: " + data.message);
-      }
-    } catch (error) {
-      console.error("Error verifying driver:", error);
-      alert("Something went wrong.");
-    }
-  };
-
-  const handleDeleteUser = async (userId, type) => {
-    try {
-      await axios.delete(`http://localhost:3001/admin/users/${type}/${userId}`, {
-        withCredentials: true,
-      });
-      setUsers(prev => prev.filter(u => u.id !== userId));
-    } catch (err) {
-      console.error('Delete error:', err);
-      setError('Failed to delete user');
-    }
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(amount);
   };
 
   const handleLogout = () => {
-    axios.post('http://localhost:3001/auth/logout', {}, { withCredentials: true })
-      .finally(() => navigate('/login'));
+    // Remove user data from localStorage and redirect to login page
+    localStorage.removeItem('token');
+    localStorage.removeItem('userType');
+    localStorage.removeItem('shopOwnerId');
+    navigate('/login'); // Redirect to login page
   };
 
   if (loading) return (
     <div style={styles.loadingContainer}>
       <div style={styles.loadingSpinner}></div>
-      <p style={styles.loadingText}>Loading Dashboard...</p>
+      <p style={styles.loadingText}>Loading your dashboard...</p>
     </div>
   );
 
@@ -103,9 +64,12 @@ const AdminDashboard = () => {
     <div style={styles.errorContainer}>
       <div style={styles.errorIcon}>!</div>
       <p style={styles.errorText}>{error}</p>
-      <button 
-        onClick={() => window.location.reload()} 
-        style={styles.retryButton}
+      <button
+        style={styles.errorButton}
+        onClick={() => window.location.reload()}
+        onMouseEnter={() => setHoveredItem('errorButton')}
+        onMouseLeave={() => setHoveredItem(null)}
+
       >
         Try Again
       </button>
@@ -114,648 +78,696 @@ const AdminDashboard = () => {
 
   return (
     <div style={styles.container}>
-      <header style={styles.header}>
-        <div style={styles.headerContent}>
-          <h1 style={styles.headerTitle}>Admin Dashboard</h1>
-          <div style={styles.headerActions}>
-            <button 
-              onClick={() => navigate('/wallet')} 
-              style={styles.actionButton}
-              className="dashboard-button"
-            >
-              <i className="fas fa-wallet" style={styles.buttonIcon}></i> Wallet
-            </button>
-            <button 
-              onClick={() => navigate('/profile')} 
-              style={styles.actionButton}
-              className="dashboard-button"
-            >
-              <i className="fas fa-user" style={styles.buttonIcon}></i> Profile
-            </button>
-            <button 
-              onClick={handleLogout} 
-              style={styles.logoutButton}
-              className="dashboard-button"
-            >
-              <i className="fas fa-sign-out-alt" style={styles.buttonIcon}></i> Logout
-            </button>
-          </div>
+      <div style={styles.sidebar}>
+        <div style={styles.logoContainer}>
+          <h2 style={styles.logo}>DeliveryApp</h2>
         </div>
-      </header>
+        <div style={styles.menuItems}>
+          <div 
+            style={{
+              ...styles.menuItem,
+              ...(activeSection === 'dashboard' && styles.activeMenuItem),
+              ...(hoveredItem === 'dashboard' && styles.menuItemHover)
+            }}
+            onClick={() => setActiveSection('dashboard')}
+            onMouseEnter={() => setHoveredItem('dashboard')}
+            onMouseLeave={() => setHoveredItem(null)}
+          >
+            <span style={styles.menuIcon}>📊</span>
+            Dashboard
+          </div>
+          <Link to="/create-order" style={styles.menuItemLink}>
+            <div 
+              style={{
+                ...styles.menuItem,
+                ...(hoveredItem === 'createOrder' && styles.menuItemHover)
+              }}
+              onMouseEnter={() => setHoveredItem('createOrder')}
+              onMouseLeave={() => setHoveredItem(null)}
+            >
+              <span style={styles.menuIcon}>➕</span>
+              Create Order
+            </div>
+          </Link>
+          <Link to="/wallet" style={styles.menuItemLink}>
+            <div 
+              style={{
+                ...styles.menuItem,
+                ...(hoveredItem === 'wallet' && styles.menuItemHover)
+              }}
+              onMouseEnter={() => setHoveredItem('wallet')}
+              onMouseLeave={() => setHoveredItem(null)}
+            >
+              <span style={styles.menuIcon}>💰</span>
+              Wallet
+            </div>
+          </Link>
 
-      <div style={styles.content}>
-        {/* Analytics Cards */}
-        <div style={styles.analyticsSection}>
-          <div style={styles.analyticsCard} className="analytics-card">
-            <div style={styles.cardIconContainer}>
-              <i className="fas fa-shopping-cart" style={styles.cardIcon}></i>
+          <Link to="/profile" style={styles.menuItemLink}>
+            <div 
+              style={{
+                ...styles.menuItem,
+                ...(hoveredItem === 'profile' && styles.menuItemHover)
+              }}
+              onMouseEnter={() => setHoveredItem('profile')}
+              onMouseLeave={() => setHoveredItem(null)}
+            >
+              <span style={styles.menuIcon}>📩</span>
+              profile
             </div>
-            <h3 style={styles.cardTitle}>Total Orders</h3>
-            <p style={styles.analyticsValue}>{analytics.totalOrders}</p>
-            <div style={styles.cardFooter}></div>
-          </div>
-          
-          <div style={styles.analyticsCard} className="analytics-card">
-            <div style={styles.cardIconContainer}>
-              <i className="fas fa-dollar-sign" style={styles.cardIcon}></i>
-            </div>
-            <h3 style={styles.cardTitle}>Total Revenue</h3>
-            <p style={styles.analyticsValue}>{analytics.totalRevenue}</p>
-            <div style={styles.cardFooter}></div>
-          </div>
-          
-          <div style={styles.analyticsCard} className="analytics-card">
-            <div style={styles.cardIconContainer}>
-              <i className="fas fa-users" style={styles.cardIcon}></i>
-            </div>
-            <h3 style={styles.cardTitle}>Active Users</h3>
-            <p style={styles.analyticsValue}>{analytics.activeUsers}</p>
-            <div style={styles.cardFooter}></div>
-          </div>
+          </Link>
+
         </div>
-
-        {/* User Management Section */}
-        <section style={styles.section} className="dashboard-section">
-          <div style={styles.sectionHeader}>
-            <h2 style={styles.sectionTitle}>
-              <i className="fas fa-users-cog" style={styles.sectionIcon}></i> User Management
-            </h2>
-          </div>
-          <div style={styles.tableContainer}>
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th style={styles.tableHeader}>ID</th>
-                  <th style={styles.tableHeader}>Type</th>
-                  <th style={styles.tableHeader}>Email</th>
-                  <th style={styles.tableHeader}>Created At</th>
-                  <th style={styles.tableHeader}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map(u => (
-                  <tr key={`${u.type}-${u.id}`} style={styles.tableRow}>
-                    <td style={styles.tableCell}>{u.id}</td>
-                    <td style={styles.tableCell}>
-                      <span style={u.type === 'admin' ? styles.adminBadge : styles.userBadge}>
-                        {u.type}
-                      </span>
-                    </td>
-                    <td style={styles.tableCell}>{u.email}</td>
-                    <td style={styles.tableCell}>{new Date(u.created_at).toLocaleString()}</td>
-                    <td style={styles.tableCell}>
-                      <button
-                        style={styles.deleteButton}
-                        onClick={() => handleDeleteUser(u.id, u.type)}
-                        className="action-button"
-                      >
-                        <i className="fas fa-trash-alt"></i> Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        {/* Driver Verification Section */}
-        <section style={styles.section} className="dashboard-section">
-          <div style={styles.sectionHeader}>
-            <h2 style={styles.sectionTitle}>
-              <i className="fas fa-id-card" style={styles.sectionIcon}></i> Driver Verification Requests
-            </h2>
-          </div>
-          
-          {verifications.length === 0 ? (
-            <div style={styles.emptyState}>
-              <i className="fas fa-check-circle" style={styles.emptyIcon}></i>
-              <p style={styles.emptyText}>No pending verification requests</p>
-            </div>
-          ) : (
-            <div style={styles.verificationGrid}>
-              {verifications.map((verification) => (
-                <div
-                  key={verification.driver_id}
-                  style={styles.verificationCard}
-                  className="verification-card"
-                >
-                  <div style={styles.verificationHeader}>
-                    <h3 style={styles.verificationTitle}>
-                      Driver ID: {verification.driver_id}
-                    </h3>
-                    <span style={verification.status === 'approved' ? styles.approvedStatus : 
-                                 verification.status === 'rejected' ? styles.rejectedStatus : styles.pendingStatus}>
-                      {verification.status}
-                    </span>
-                  </div>
-                  
-                  <div style={styles.verificationBody}>
-                    <p style={styles.verificationText}>
-                      <i className="fas fa-id-badge" style={styles.verificationIcon}></i>
-                      <strong>ID Proof:</strong>{" "}
-                      <a 
-                        href={`http://localhost:3001/${verification.id_proof}`} 
-                        target="_blank" 
-                        rel="noreferrer"
-                        style={styles.verificationLink}
-                      >
-                        View Document
-                      </a>
-                    </p>
-                    
-                    <div style={styles.verificationActions}>
-                      <button
-                        onClick={() => handleVerify(verification.driver_id, "approved")}
-                        style={styles.approveButton}
-                        className="action-button"
-                      >
-                        <i className="fas fa-check"></i> Approve
-                      </button>
-                      
-                      <button
-                        onClick={() => handleVerify(verification.driver_id, "rejected")}
-                        style={styles.rejectButton}
-                        className="action-button"
-                      >
-                        <i className="fas fa-times"></i> Reject
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+        <div style={styles.sidebarFooter}>
+          <button 
+            onClick={handleLogout} 
+            style={{
+              ...styles.logoutButton,
+              ...(hoveredItem === 'logout' && styles.logoutButtonHover)
+            }}
+            onMouseEnter={() => setHoveredItem('logout')}
+            onMouseLeave={() => setHoveredItem(null)}
+          >
+            Logout
+          </button>
+        </div>
       </div>
 
-      {/* Global Styles */}
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css');
-        
-        .dashboard-button {
-          transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-        }
-        
-        .dashboard-button:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-        
-        .dashboard-button:active {
-          transform: translateY(0);
-        }
-        
-        .analytics-card {
-          transition: all 0.3s ease;
-        }
-        
-        .analytics-card:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
-        }
-        
-        .dashboard-section {
-          transition: all 0.3s ease;
-        }
-        
-        .dashboard-section:hover {
-          box-shadow: 0 8px 30px rgba(0,0,0,0.12) !important;
-        }
-        
-        .action-button {
-          transition: all 0.2s ease;
-        }
-        
-        .action-button:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        
-        .action-button:active {
-          transform: translateY(0);
-        }
-        
-        .verification-card {
-          transition: all 0.3s ease;
-        }
-        
-        .verification-card:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 8px 20px rgba(0,0,0,0.12) !important;
-        }
-      `}</style>
+      <div style={styles.content}>
+        <header style={styles.header}>
+          <h1 style={styles.headerTitle}>Shop Owner Dashboard</h1>
+          <div style={styles.headerRight}>
+            <div style={styles.dateTime}>
+              {new Date().toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              })}
+            </div>
+            <div style={styles.userInfo}>
+              <div 
+                style={{
+                  ...styles.userAvatar,
+                  ...(hoveredItem === 'avatar' && styles.userAvatarHover)
+                }}
+                onMouseEnter={() => setHoveredItem('avatar')}
+                onMouseLeave={() => setHoveredItem(null)}
+              >
+                SO
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main style={styles.main}>
+          <div style={styles.dashboardSummary}>
+            <div 
+              style={{
+                ...styles.summaryCard,
+                ...(hoveredItem === 'walletCard' && styles.summaryCardHover)
+              }}
+              onMouseEnter={() => setHoveredItem('walletCard')}
+              onMouseLeave={() => setHoveredItem(null)}
+            >
+              <div style={styles.summaryIconContainer}>
+                <span style={styles.summaryIcon}>💰</span>
+              </div>
+              <div style={styles.summaryContent}>
+                <h3 style={styles.summaryTitle}>Wallet Balance</h3>
+                <p style={styles.walletBalance}>{wallet ? formatCurrency(wallet.balance) : '$0.00'}</p>
+              </div>
+            </div>
+            
+            <div 
+              style={{
+                ...styles.summaryCard,
+                ...(hoveredItem === 'ordersCard' && styles.summaryCardHover)
+              }}
+              onMouseEnter={() => setHoveredItem('ordersCard')}
+              onMouseLeave={() => setHoveredItem(null)}
+            >
+              <div style={styles.summaryIconContainer}>
+                <span style={styles.summaryIcon}>📦</span>
+              </div>
+              <div style={styles.summaryContent}>
+                <h3 style={styles.summaryTitle}>Total Orders</h3>
+                <p style={styles.summaryValue}>{orders.length}</p>
+              </div>
+            </div>
+            
+            <div 
+              style={{
+                ...styles.summaryCard,
+                ...(hoveredItem === 'pendingCard' && styles.summaryCardHover)
+              }}
+              onMouseEnter={() => setHoveredItem('pendingCard')}
+              onMouseLeave={() => setHoveredItem(null)}
+            >
+              <div style={styles.summaryIconContainer}>
+                <span style={styles.summaryIcon}>🔄</span>
+              </div>
+              <div style={styles.summaryContent}>
+                <h3 style={styles.summaryTitle}>Pending Orders</h3>
+                <p style={styles.summaryValue}>
+                  {orders.filter(order => order.status === 'Pending' || !order.status).length}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <section style={styles.section}>
+            <div style={styles.sectionHeader}>
+              <h2 style={styles.sectionTitle}>Recent Orders</h2>
+              <button 
+                style={{
+                  ...styles.viewAllButton,
+                  ...(hoveredItem === 'viewAll' && styles.viewAllButtonHover)
+                }}
+                onMouseEnter={() => setHoveredItem('viewAll')}
+                onMouseLeave={() => setHoveredItem(null)}
+              >
+                View All
+              </button>
+            </div>
+            
+            {orders.length === 0 ? (
+              <div style={styles.emptyState}>
+                <div style={styles.emptyStateIcon}>📭</div>
+                <p style={styles.emptyStateText}>No orders found.</p>
+                <Link 
+                  to="/create-order" 
+                  style={{
+                    ...styles.emptyStateButton,
+                    ...(hoveredItem === 'createFirst' && styles.emptyStateButtonHover)
+                  }}
+                  onMouseEnter={() => setHoveredItem('createFirst')}
+                  onMouseLeave={() => setHoveredItem(null)}
+                >
+                  Create Your First Order
+                </Link>
+              </div>
+            ) : (
+              <div style={styles.tableWrapper}>
+                <table style={styles.table}>
+                  <thead style={styles.tableHeader}>
+                    <tr>
+                      <th style={styles.tableHeaderCell}>Order ID</th>
+                      <th style={styles.tableHeaderCell}>Customer</th>
+                      <th style={styles.tableHeaderCell}>Total</th>
+                      <th style={styles.tableHeaderCell}>Status</th>
+                      <th style={styles.tableHeaderCell}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orders.map((order, index) => (
+                      <tr 
+                        key={order.order_id} 
+                        style={{
+                          ...(index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd),
+                          ...(hoveredItem === `row-${order.id}` && styles.tableRowHover)
+                        }}
+                        onMouseEnter={() => setHoveredItem(`row-${order.id}`)}
+                        onMouseLeave={() => setHoveredItem(null)}
+                      >
+                        <td style={styles.tableCell}>{order.order_id}</td>
+                        <td style={styles.tableCell}>{order.customer_id}</td>
+                        <td style={styles.tableCell}>{formatCurrency(order.total_amount)}</td>
+                        <td style={styles.tableCell}>
+                          <span style={{
+                            ...styles.statusBadge,
+                            backgroundColor: 
+                              (order.status === 'Completed' ? '#4caf50' : 
+                              order.status === 'Processing' ? '#2196f3' : 
+                              order.status === 'Cancelled' ? '#f44336' : '#ff9800')
+                          }}>
+                            {order.status || "Pending"}
+                          </span>
+                        </td>
+                        <td style={styles.tableCell}>
+                          <button onClick={() => navigate(`/track-order/${order.order_id}`)}
+                            style={{
+                              ...styles.viewButton,
+                              ...(hoveredItem === `view-${order.order_id}` && styles.viewButtonHover)
+                            }}
+                            onMouseEnter={() => setHoveredItem(`view-${order.order_id}`)}
+                            onMouseLeave={() => setHoveredItem(null)}
+                          >
+                            View
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </main>
+      </div>
     </div>
   );
 };
 
 const styles = {
-  container: { 
-    fontFamily: "'Inter', sans-serif",
-    backgroundImage: 'url("/images/adminDashboard2.png")',
-    backgroundSize: 'cover',
-    backgroundAttachment: 'fixed',
+  // Main container
+  container: {
+    fontFamily: "'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+    backgroundColor: '#f8f9fa',
     minHeight: '100vh',
-    color: '#2d3748'
+    display: 'flex',
+    margin: 0,
+    padding: 0,
+    transition: 'all 0.3s ease',
+    backgroundImage: 'url("/images/shopDashboard.png")',
   },
+
+  // Sidebar styles
+  sidebar: {
+    width: '260px',
+    backgroundColor: '#0f172a',
+    color: '#fff',
+    display: 'flex',
+    flexDirection: 'column',
+    position: 'fixed',
+    height: '100vh',
+    boxShadow: '2px 0px 10px rgba(0,0,0,0.1)',
+    transition: 'all 0.3s ease',
+    zIndex: 10,
+  },
+  logoContainer: {
+    padding: '24px',
+    borderBottom: '1px solid #1e293b',
+  },
+  logo: {
+    margin: 0,
+    fontSize: '24px',
+    fontWeight: 700,
+    background: 'linear-gradient(45deg, #4ade80, #3b82f6)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    textAlign: 'center',
+  },
+  menuItems: {
+    display: 'flex',
+    flexDirection: 'column',
+    padding: '20px 0',
+    flex: 1,
+  },
+  menuItem: {
+    padding: '14px 24px',
+    display: 'flex',
+    alignItems: 'center',
+    color: '#cbd5e1',
+    cursor: 'pointer',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    borderLeft: '4px solid transparent',
+    marginBottom: '5px',
+  },
+  menuItemHover: {
+    backgroundColor: '#1e293b',
+    color: '#fff',
+    borderLeft: '4px solid #4ade80',
+    transform: 'translateX(5px)',
+  },
+  activeMenuItem: {
+    backgroundColor: '#1e293b',
+    color: '#fff',
+    borderLeft: '4px solid #4ade80',
+  },
+  menuItemLink: {
+    textDecoration: 'none',
+  },
+  menuIcon: {
+    marginRight: '12px',
+    fontSize: '18px',
+    transition: 'transform 0.3s ease',
+  },
+  sidebarFooter: {
+    padding: '20px',
+    borderTop: '1px solid #1e293b',
+  },
+  logoutButton: {
+    padding: '12px',
+    backgroundColor: 'transparent',
+    color: '#cbd5e1',
+    border: '1px solid #475569',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '16px',
+    width: '100%',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontWeight: 500,
+  },
+  logoutButtonHover: {
+    backgroundColor: '#dc2626',
+    color: '#fff',
+    border: '1px solid #dc2626',
+    transform: 'translateY(-2px)',
+    boxShadow: '0 4px 8px rgba(220, 38, 38, 0.2)',
+  },
+
+  // Content area
+  content: {
+    flex: 1,
+    marginLeft: '260px',
+    transition: 'all 0.3s ease',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+
+  // Header
+  header: {
+    backgroundColor: 'yellow',
+    padding: '20px 30px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    boxShadow: '0 2px 5px rgba(0,0,0,0.05)',
+    position: 'sticky',
+    top: 0,
+    zIndex: 5,
+  },
+  headerTitle: {
+    margin: 0,
+    fontSize: '24px',
+    fontWeight: 600,
+    color: '#1e293b',
+  },
+  headerRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '20px',
+  },
+  dateTime: {
+    color: '#64748b',
+    fontSize: '14px',
+  },
+  userInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+  },
+  userAvatar: {
+    width: '40px',
+    height: '40px',
+    borderRadius: '50%',
+    backgroundColor: '#3b82f6',
+    color: '#fff',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontWeight: 600,
+    cursor: 'pointer',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  },
+  userAvatarHover: {
+    transform: 'scale(1.1)',
+    boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.3)',
+  },
+
+  // Main content area
+  main: {
+    padding: '30px',
+    flex: 1,
+  },
+
+  // Dashboard summary cards
+  dashboardSummary: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+    gap: '24px',
+    marginBottom: '30px',
+  },
+  summaryCard: {
+    backgroundColor: '#fff',
+    borderRadius: '10px',
+    padding: '24px',
+    boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
+    display: 'flex',
+    alignItems: 'center',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    border: '1px solid #e2e8f0',
+  },
+  summaryCardHover: {
+    transform: 'translateY(-5px)',
+    boxShadow: '0 10px 20px rgba(0,0,0,0.1)',
+    borderColor: '#cbd5e1',
+  },
+  summaryIconContainer: {
+    width: '60px',
+    height: '60px',
+    borderRadius: '12px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: '20px',
+    background: 'linear-gradient(45deg, rgba(74, 222, 128, 0.2), rgba(59, 130, 246, 0.2))',
+    transition: 'all 0.3s ease',
+  },
+  summaryIcon: {
+    fontSize: '28px',
+    transition: 'transform 0.3s ease',
+  },
+  summaryContent: {
+    flex: 1,
+  },
+  summaryTitle: {
+    margin: '0 0 5px 0',
+    fontSize: '16px',
+    color: '#64748b',
+    fontWeight: 500,
+  },
+  walletBalance: {
+    fontSize: '28px',
+    color: '#0f172a',
+    fontWeight: 700,
+    margin: 0,
+  },
+  summaryValue: {
+    fontSize: '28px',
+    color: '#0f172a',
+    fontWeight: 700,
+    margin: 0,
+  },
+
+  // Section styles
+  section: {
+    backgroundColor: '#fff',
+    padding: '24px',
+    borderRadius: '10px',
+    boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
+    marginBottom: '30px',
+    border: '1px solid #e2e8f0',
+    transition: 'all 0.3s ease',
+  },
+  sectionHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '20px',
+  },
+  sectionTitle: {
+    margin: 0,
+    fontSize: '20px',
+    fontWeight: 600,
+    color: '#1e293b',
+  },
+  viewAllButton: {
+    padding: '8px 16px',
+    backgroundColor: '#f1f5f9',
+    color: '#64748b',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: 500,
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  },
+  viewAllButtonHover: {
+    backgroundColor: '#e2e8f0',
+    color: '#334155',
+    transform: 'translateY(-2px)',
+    boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+  },
+
+  // Table styles
+  tableWrapper: {
+    overflowX: 'auto',
+  },
+  table: {
+    width: '100%',
+    borderCollapse: 'separate',
+    borderSpacing: '0 10px',
+    marginTop: '10px',
+  },
+  tableHeader: {
+    backgroundColor: '#f8fafc',
+  },
+  tableHeaderCell: {
+    padding: '16px',
+    textAlign: 'left',
+    color: '#64748b',
+    fontWeight: 600,
+    fontSize: '14px',
+    borderBottom: '1px solid #e2e8f0',
+  },
+  tableRowEven: {
+    backgroundColor: '#fff',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  },
+  tableRowOdd: {
+    backgroundColor: '#f8fafc',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  },
+  tableRowHover: {
+    backgroundColor: '#f1f5f9',
+    transform: 'translateY(-2px)',
+    boxShadow: '0 4px 8px rgba(0,0,0,0.05)',
+  },
+  tableCell: {
+    padding: '16px',
+    fontSize: '14px',
+    color: '#334155',
+    borderBottom: '1px solid #e2e8f0',
+  },
+  statusBadge: {
+    padding: '6px 12px',
+    borderRadius: '20px',
+    fontSize: '12px',
+    fontWeight: 500,
+    color: '#fff',
+    display: 'inline-block',
+  },
+  viewButton: {
+    padding: '6px 12px',
+    backgroundColor: '#e0f2fe',
+    color: '#0284c7',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '12px',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  },
+  viewButtonHover: {
+    backgroundColor: '#bae6fd',
+    transform: 'translateY(-2px)',
+    boxShadow: '0 2px 5px rgba(2, 132, 199, 0.2)',
+  },
+
+  // Empty state
+  emptyState: {
+    textAlign: 'center',
+    padding: '40px 0',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+  },
+  emptyStateIcon: {
+    fontSize: '48px',
+    marginBottom: '16px',
+    transition: 'transform 0.3s ease',
+    ':hover': {
+      transform: 'scale(1.1)',
+    },
+  },
+  emptyStateText: {
+    fontSize: '16px',
+    color: '#64748b',
+    margin: '0 0 20px 0',
+  },
+  emptyStateButton: {
+    padding: '12px 24px',
+    backgroundColor: '#3b82f6',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: 500,
+    textDecoration: 'none',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  },
+  emptyStateButtonHover: {
+    backgroundColor: '#2563eb',
+    transform: 'translateY(-3px)',
+    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+  },
+
+  // Loading state
   loadingContainer: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
     height: '100vh',
-    background: 'rgba(255,255,255,0.9)'
+    backgroundColor: '#f8f9fa',
   },
   loadingSpinner: {
     width: '50px',
     height: '50px',
-    border: '5px solid #f3f3f3',
-    borderTop: '5px solid #3498db',
+    border: '3px solid rgba(59, 130, 246, 0.2)',
     borderRadius: '50%',
+    borderTop: '3px solid #3b82f6',
     animation: 'spin 1s linear infinite',
-    marginBottom: '20px'
+    marginBottom: '20px',
+    '@keyframes spin': {
+      '0%': { transform: 'rotate(0deg)' },
+      '100%': { transform: 'rotate(360deg)' },
+    },
   },
   loadingText: {
-    fontSize: '18px',
-    color: '#4a5568',
-    fontWeight: '500'
+    color: '#64748b',
+    fontSize: '16px',
   },
+
+  // Error state
   errorContainer: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
     height: '100vh',
-    padding: '20px',
-    textAlign: 'center',
-    background: 'rgba(255,255,255,0.9)'
+    backgroundColor: '#f8f9fa',
   },
   errorIcon: {
     width: '60px',
     height: '60px',
     borderRadius: '50%',
-    backgroundColor: '#ff4444',
-    color: 'white',
+    backgroundColor: '#fee2e2',
+    color: '#ef4444',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: '30px',
+    fontSize: '32px',
     fontWeight: 'bold',
-    marginBottom: '20px'
+    marginBottom: '20px',
   },
   errorText: {
-    fontSize: '18px',
-    color: '#2d3748',
+    color: '#64748b',
+    fontSize: '16px',
     marginBottom: '20px',
-    maxWidth: '500px'
   },
-  retryButton: {
+  errorButton: {
     padding: '12px 24px',
-    backgroundColor: '#3498db',
-    color: 'white',
+    backgroundColor: '#3b82f6',
+    color: '#fff',
     border: 'none',
     borderRadius: '8px',
-    fontSize: '16px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    boxShadow: '0 2px 10px rgba(52, 152, 219, 0.3)'
-  },
-  header: {
-    background: 'linear-gradient(135deg,rgb(21, 157, 167) 0%,rgb(189, 8, 8) 100%)',
-    color: 'white',
-    padding: '0 20px',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-  },
-  headerContent: {
-    maxWidth: '1200px',
-    margin: '0 auto',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '20px 0'
-  },
-  headerTitle: {
-    margin: '0',
-    fontSize: '28px',
-    fontWeight: '700',
-    background: 'linear-gradient(to right, #fff, #eee)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent'
-  },
-  headerActions: {
-    display: 'flex',
-    gap: '15px'
-  },
-  actionButton: {
-    background: 'rgba(255,255,255,0.9)',
-    border: 'none',
-    color: '#2c3e50',
-    padding: '10px 20px',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontSize: '15px',
-    fontWeight: '600',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-  },
-  logoutButton: {
-    background: 'rgba(255,255,255,0.1)',
-    border: '1px solid rgba(255,255,255,0.3)',
-    color: 'white',
-    padding: '10px 20px',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontSize: '15px',
-    fontWeight: '600',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    backdropFilter: 'blur(5px)'
-  },
-  buttonIcon: {
-    fontSize: '16px'
-  },
-  content: {
-    maxWidth: '1200px',
-    margin: '30px auto',
-    padding: '0 20px'
-  },
-  analyticsSection: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-    gap: '25px',
-    marginBottom: '40px'
-  },
-  analyticsCard: {
-    background: 'yellow',
-    padding: '25px',
-    borderRadius: '12px',
-    boxShadow: '0 5px 15px rgba(0,0,0,0.08)',
-    textAlign: 'center',
-    position: 'relative',
-    overflow: 'hidden'
-  },
-  cardIconContainer: {
-    width: '60px',
-    height: '60px',
-    borderRadius: '50%',
-    background: 'linear-gradient(135deg, #3498db 0%, #2c3e50 100%)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    margin: '0 auto 20px',
-    color: 'white',
-    fontSize: '24px'
-  },
-  cardIcon: {
-    fontSize: '24px'
-  },
-  cardTitle: {
-    fontSize: '18px',
-    color: '#4a5568',
-    margin: '0 0 15px',
-    fontWeight: '600'
-  },
-  analyticsValue: {
-    fontSize: '32px',
-    fontWeight: '700',
-    margin: '10px 0',
-    color: '#2c3e50',
-    background: 'linear-gradient(to right, #3498db, #2c3e50)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent'
-  },
-  cardFooter: {
-    position: 'absolute',
-    bottom: '0',
-    left: '0',
-    width: '100%',
-    height: '5px',
-    background: 'linear-gradient(to right, #3498db, #2c3e50)'
-  },
-  section: {
-    background: 'orange',
-    padding: '30px',
-    borderRadius: '12px',
-    boxShadow: '0 5px 15px rgba(0,0,0,0.08)',
-    marginBottom: '40px'
-  },
-  sectionHeader: {
-    borderBottom: '1px solid #e2e8f0',
-    paddingBottom: '15px',
-    marginBottom: '25px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between'
-  },
-  sectionTitle: {
-    fontSize: '22px',
-    color: '#2c3e50',
-    margin: '0',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px'
-  },
-  sectionIcon: {
-    color: '#3498db',
-    fontSize: '20px'
-  },
-  tableContainer: {
-    overflowX: 'auto',
-    borderRadius: '10px',
-    boxShadow: '0 2px 10px rgba(0,0,0,0.05)'
-  },
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse',
-    borderRadius: '10px',
-    overflow: 'hidden'
-  },
-  tableHeader: {
-    background: '#2c3e50',
-    color: 'white',
-    padding: '15px',
-    textAlign: 'left',
-    fontWeight: '600'
-  },
-  tableRow: {
-    borderBottom: '1px solid #e2e8f0',
-    transition: 'background 0.2s ease',
-    '&:hover': {
-      background: '#f8fafc'
-    }
-  },
-  tableCell: {
-    padding: '15px',
-    color: '#4a5568'
-  },
-  adminBadge: {
-    background: '#2c3e50',
-    color: 'white',
-    padding: '5px 10px',
-    borderRadius: '20px',
-    fontSize: '13px',
-    fontWeight: '600'
-  },
-  userBadge: {
-    background: '#3498db',
-    color: 'white',
-    padding: '5px 10px',
-    borderRadius: '20px',
-    fontSize: '13px',
-    fontWeight: '600'
-  },
-  deleteButton: {
-    background: '#ff4444',
-    color: 'white',
-    border: 'none',
-    padding: '8px 16px',
-    borderRadius: '6px',
     cursor: 'pointer',
     fontSize: '14px',
-    fontWeight: '600',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    boxShadow: '0 2px 6px rgba(255, 68, 68, 0.2)'
+    fontWeight: 500,
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
   },
-  verificationGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
-    gap: '20px',
-    marginTop: '20px'
+  errorButtonHover: {
+    backgroundColor: '#2563eb',
+    transform: 'translateY(-3px)',
+    boxShadow: '0 4px 8px rgba(37, 99, 235, 0.2)',
   },
-  verificationCard: {
-    background: 'white',
-    borderRadius: '10px',
-    boxShadow: '0 3px 10px rgba(0,0,0,0.08)',
-    overflow: 'hidden',
-    border: '1px solid #e2e8f0'
-  },
-  verificationHeader: {
-    background: '#f8fafc',
-    padding: '15px 20px',
-    borderBottom: '1px solid #e2e8f0',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  },
-  verificationTitle: {
-    margin: '0',
-    fontSize: '16px',
-    color: '#2c3e50',
-    fontWeight: '600'
-  },
-  approvedStatus: {
-    background: '#28a745',
-    color: 'white',
-    padding: '5px 10px',
-    borderRadius: '20px',
-    fontSize: '12px',
-    fontWeight: '600'
-  },
-  rejectedStatus: {
-    background: '#dc3545',
-    color: 'white',
-    padding: '5px 10px',
-    borderRadius: '20px',
-    fontSize: '12px',
-    fontWeight: '600'
-  },
-  pendingStatus: {
-    background: '#ffc107',
-    color: '#2c3e50',
-    padding: '5px 10px',
-    borderRadius: '20px',
-    fontSize: '12px',
-    fontWeight: '600'
-  },
-  verificationBody: {
-    padding: '20px'
-  },
-  verificationText: {
-    margin: '0 0 15px',
-    color: '#4a5568',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px'
-  },
-  verificationIcon: {
-    color: '#3498db',
-    fontSize: '16px'
-  },
-  verificationLink: {
-    color: '#3498db',
-    textDecoration: 'none',
-    fontWeight: '500',
-    '&:hover': {
-      textDecoration: 'underline'
-    }
-  },
-  verificationActions: {
-    display: 'flex',
-    gap: '10px',
-    marginTop: '20px'
-  },
-  approveButton: {
-    background: '#28a745',
-    color: 'white',
-    border: 'none',
-    padding: '10px 15px',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '600',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    flex: '1',
-    justifyContent: 'center'
-  },
-  rejectButton: {
-    background: '#dc3545',
-    color: 'white',
-    border: 'none',
-    padding: '10px 15px',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '600',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    flex: '1',
-    justifyContent: 'center'
-  },
-  emptyState: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '40px 20px',
-    textAlign: 'center'
-  },
-  emptyIcon: {
-    fontSize: '50px',
-    color: '#38a169',
-    marginBottom: '20px'
-  },
-  emptyText: {
-    fontSize: '16px',
-    color: '#4a5568',
-    margin: '0'
-  },
-  '@keyframes spin': {
-    '0%': {
-      transform: 'rotate(0deg)'
-    },
-    '100%': {
-      transform: 'rotate(360deg)'
-    }
-  }
 };
 
-export default AdminDashboard;
+export default ShopOwnerDashboard;
+
