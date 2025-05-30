@@ -145,7 +145,7 @@ const Register = () => {
       <LoadScript googleMapsApiKey="AIzaSyDBz09hJefhlXJUFtOd9p34dSa9aHO0lz4">
         <GoogleMap
           mapContainerStyle={{ height: '250px', width: '100%', marginBottom: '15px', borderRadius: '8px' }}
-          center={shopCoords || { lat: 33.8938, lng: 35.5018 }}
+          center={shopCoords || { lat: 34.4367, lng: 35.8497 }}
           zoom={12}
           onClick={handleMapClick}
         >

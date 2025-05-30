@@ -41,7 +41,7 @@ const ShopOwnerDashboard = () => {
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'LBP',
     }).format(amount);
   };
 
@@ -195,7 +195,7 @@ const ShopOwnerDashboard = () => {
               </div>
               <div style={styles.summaryContent}>
                 <h3 style={styles.summaryTitle}>Wallet Balance</h3>
-                <p style={styles.walletBalance}>{wallet ? formatCurrency(wallet.balance) : '$0.00'}</p>
+                <p style={styles.walletBalance}>{wallet ? formatCurrency(wallet.balance) : '(L.L)0.00'}</p>
               </div>
             </div>
             

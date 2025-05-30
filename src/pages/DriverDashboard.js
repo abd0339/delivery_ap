@@ -74,7 +74,7 @@ const DriverDashboard = () => {
   
         const rawBalance = walletRes.data.balance;
         const numericBalance = parseFloat(rawBalance) || 0;
-        setBalance(`$${numericBalance.toFixed(2)}`);
+        setBalance(`(LBP)${numericBalance.toFixed(2)}`);
   
         if (verificationRes.data.success) {
           setVerificationStatus({
@@ -320,7 +320,7 @@ const DriverDashboard = () => {
                   <div key={order.order_id} className="order-card" style={styles.orderCard}>
                     <div style={styles.orderHeader}>
                       <span style={styles.orderNumber}>Order #{order.order_id}</span>
-                      <span style={styles.orderAmount}>${parseFloat(order.total_amount).toFixed(2)}</span>
+                      <span style={styles.orderAmount}>(LBP){parseFloat(order.total_amount).toFixed(2)}</span>
                     </div>
                     <div style={styles.orderDetails}>
                       <div style={styles.detailItem}>

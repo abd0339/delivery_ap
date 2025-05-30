@@ -38,7 +38,7 @@ const CreateOrder = () => {
 
   useEffect(() => {
     const storedId = localStorage.getItem('shopOwnerId');
-    console.log("Stored shopOwnerId:", storedId); // Debug line
+    console.log("Stored shopOwnerId:", storedId); 
   
     if (!storedId || storedId === "undefined" || storedId === null) {
       setError("Not logged in. Please log in again.");
@@ -65,7 +65,7 @@ const CreateOrder = () => {
           setOriginCoords({ lat: originLat, lng: originLng });
         } else {
           // Fallback coordinates
-          setOriginCoords({ lat: 33.8938, lng: 35.5018 });
+          setOriginCoords({ lat: 34.4367, lng: 35.8497 });
         }
       } catch (err) {
         console.error('Error fetching customer data:', err);
@@ -224,10 +224,10 @@ const CreateOrder = () => {
             <div style={styles.inputWrapper}>
               <label style={styles.inputLabel}>Package Price*</label>
               <div style={styles.inputContainer}>
-                <span style={styles.inputPrefix}>$</span>
+                <span style={styles.inputPrefix}>(LBP) </span>
                 <input
                   type="number"
-                  placeholder="Enter price"
+                  placeholder="                                              Enter price"
                   value={packagePrice}
                   onChange={(e) => setPackagePrice(e.target.value)}
                   style={styles.input}
@@ -305,8 +305,8 @@ const CreateOrder = () => {
                 <GoogleMap
                   mapContainerStyle={mapContainerStyle}
                   center={originCoords}
-                  zoom={14}
-                  onClick={handleOriginMapClick}
+                  zoom={12}
+                  onClick={handleMapClick}
                 >
                   <Marker position={originCoords} />
                 </GoogleMap>
@@ -403,16 +403,16 @@ const CreateOrder = () => {
               <div style={styles.priceBreakdown}>
                 <div style={styles.priceRow}>
                   <span>Package Price:</span>
-                  <span>${(parseFloat(packagePrice) || 0).toFixed(2)}</span>
+                  <span>(LBP){(parseFloat(packagePrice) || 0).toFixed(2)}</span>
                 </div>
                 <div style={styles.priceRow}>
                   <span>Delivery Fee:</span>
-                  <span>${predictedPrice.toFixed(2)}</span>
+                  <span>(LBP){predictedPrice.toFixed(2)}</span>
                 </div>
               </div>
               <div style={styles.totalPrice}>
                 <h3>Total:</h3>
-                <h3 style={styles.totalAmount}>${((parseFloat(packagePrice) || 0) + predictedPrice).toFixed(2)}</h3>
+                <h3 style={styles.totalAmount}>(LBP){((parseFloat(packagePrice) || 0) + predictedPrice).toFixed(2)}</h3>
               </div>
             </div>
           </div>
