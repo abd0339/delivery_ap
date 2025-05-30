@@ -123,7 +123,7 @@ const ShopOwnerDashboard = () => {
             </div>
           </Link>
 
-          <Link to="/profile" style={styles.menuItemLink}>
+          {/* <Link to="/profile" style={styles.menuItemLink}>
             <div 
               style={{
                 ...styles.menuItem,
@@ -135,7 +135,7 @@ const ShopOwnerDashboard = () => {
               <span style={styles.menuIcon}>📩</span>
               profile
             </div>
-          </Link>
+          </Link> */}
 
         </div>
         <div style={styles.sidebarFooter}>
