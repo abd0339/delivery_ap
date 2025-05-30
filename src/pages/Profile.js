@@ -13,15 +13,15 @@ const Profile = () => {
     phoneNumber: '',
     currentPassword: '',
     newPassword: '',
-    shopName: '',
-    shopAddress: '',
-    vehicleType: '',
+    shop_name: '',
+    shop_address: '',
+    vehicle_type: '',
   });
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const userId = userType === 'driver' ? driverId : shopOwnerId;
+  const userId = userType === 'drivers' ? driverId : shopOwnerId;
 
   useEffect(() => {
     if (!userType || !userId) {
@@ -32,7 +32,7 @@ const Profile = () => {
 
     const fetchProfile = async () => {
       try {
-        const response = await axios.get(`http://localhost:3000/profile/${userType}/${userId}`);
+        const response = await axios.get(`http://localhost:3001/profile/${userType}/${userId}`);
         setFormData((prev) => ({
           ...prev,
           ...response.data,
@@ -58,13 +58,13 @@ const Profile = () => {
     }
 
     try {
-      const response = await axios.put(`http://localhost:3000/profile/${userType}/${userId}`, formData);
+      const response = await axios.put(`http://localhost:3001/profile/${userType}/${userId}`, formData);
       if (response.data.success) {
-        if (userType === 'customer') {
+        if (userType === 'customers') {
           navigate('/shop-owner-dashboard');
-        } else if (userType === 'driver') {
+        } else if (userType === 'drivers') {
           navigate('/driver-dashboard');
-        } else if (userType === 'admin') {
+        } else if (userType === 'admins') {
           navigate('/admin-dashboard');
         }
       } else {
@@ -89,9 +89,9 @@ const Profile = () => {
         <div style={styles.backLink}>
           <Link
             to={
-              userType === 'customer'
+              userType === 'customers'
                 ? '/shop-owner-dashboard'
-                : userType === 'driver'
+                : userType === 'drivers'
                 ? '/driver-dashboard'
                 : '/admin-dashboard'
             }
@@ -152,14 +152,14 @@ const Profile = () => {
           </div>
 
           {/* Shop Owner Fields */}
-          {userType === 'customer' && (
+          {userType === 'customers' && (
             <>
               <div style={styles.formGroup}>
                 <label>Shop Name</label>
                 <input
                   type="text"
                   name="shopName"
-                  value={formData.shopName}
+                  value={formData.shop_name}
                   onChange={handleChange}
                   style={styles.input}
                   required
@@ -171,7 +171,7 @@ const Profile = () => {
                 <input
                   type="text"
                   name="shopAddress"
-                  value={formData.shopAddress}
+                  value={formData.shop_address}
                   onChange={handleChange}
                   style={styles.input}
                   required
@@ -181,13 +181,13 @@ const Profile = () => {
           )}
 
           {/* Driver Fields */}
-          {userType === 'driver' && (
+          {userType === 'drivers' && (
             <div style={styles.formGroup}>
               <label>Vehicle Type</label>
               <input
                 type="text"
                 name="vehicleType"
-                value={formData.vehicleType}
+                value={formData.vehicle_type}
                 onChange={handleChange}
                 style={styles.input}
                 required

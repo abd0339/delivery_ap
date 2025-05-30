@@ -99,5 +99,36 @@ exports.verifyDriver = async (req, res) => {
   }
 };
 
+exports.toggleUserPause = async (req, res) => {
+  try {
+    const { userId, type } = req.body;
+    let table = '';
+    if (type === 'customer') table = 'customers';
+    else if (type === 'driver') table = 'drivers';
+    else if (type === 'admin') table = 'admins';
+    else return res.status(400).json({ success: false, message: 'Invalid user type' });
+
+    const [[{ is_paused }]] = await pool.query(
+      `SELECT is_paused FROM ${table} WHERE ${type}_id = ?`,
+      [userId]
+    );
+
+    const newStatus = !is_paused;
+
+    await pool.query(
+      `UPDATE ${table} SET is_paused = ? WHERE ${type}_id = ?`,
+      [newStatus, userId]
+    );
+
+    res.json({ success: true, paused: newStatus });
+  } catch (err) {
+    console.error('Pause/resume error:', err);
+    res.status(500).json({ success: false, message: 'Failed to pause/resume user' });
+  }
+};
+
+
+
+
 
 

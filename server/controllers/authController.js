@@ -116,12 +116,14 @@ exports.loginUser = async (email, password, userType) => {
       default:
         throw new Error('Invalid user type.');
     }
-
     const [users] = await pool.query(`SELECT * FROM ${table} WHERE email = ?`, [email]);
 
     if (users.length === 0) return null;
 
     const user = users[0];
+    if (user.is_paused) {
+      return res.status(403).json({ success: false, message: "Account is paused. Please contact support." });
+    }    
     const isMatch = await bcrypt.compare(password, user[passwordField]);
 
     if (!isMatch) return null;

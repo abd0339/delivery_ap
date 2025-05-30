@@ -87,6 +87,29 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleTogglePause = async (userId, type) => {
+    try {
+      const res = await axios.post('http://localhost:3001/admin/users/pause', {
+        userId,
+        type
+      }, { withCredentials: true });
+
+      if (res.data.success) {
+        setUsers(prev =>
+          prev.map(u =>
+            u.id === userId && u.type === type
+              ? { ...u, is_paused: res.data.paused }
+              : u
+          )
+        );
+      }
+    } catch (err) {
+      console.error('Pause/resume error:', err);
+      setError('Failed to pause/resume user');
+    }
+  };
+
+
   const handleLogout = () => {
     axios.post('http://localhost:3001/auth/logout', {}, { withCredentials: true })
       .finally(() => navigate('/login'));
@@ -103,8 +126,8 @@ const AdminDashboard = () => {
     <div style={styles.errorContainer}>
       <div style={styles.errorIcon}>!</div>
       <p style={styles.errorText}>{error}</p>
-      <button 
-        onClick={() => window.location.reload()} 
+      <button
+        onClick={() => window.location.reload()}
         style={styles.retryButton}
       >
         Try Again
@@ -118,22 +141,22 @@ const AdminDashboard = () => {
         <div style={styles.headerContent}>
           <h1 style={styles.headerTitle}>Admin Dashboard</h1>
           <div style={styles.headerActions}>
-            <button 
-              onClick={() => navigate('/wallet')} 
+            <button
+              onClick={() => navigate('/wallet')}
               style={styles.actionButton}
               className="dashboard-button"
             >
               <i className="fas fa-wallet" style={styles.buttonIcon}></i> Wallet
             </button>
-            <button 
-              onClick={() => navigate('/profile')} 
+            <button
+              onClick={() => navigate('/profile')}
               style={styles.actionButton}
               className="dashboard-button"
             >
               <i className="fas fa-user" style={styles.buttonIcon}></i> Profile
             </button>
-            <button 
-              onClick={handleLogout} 
+            <button
+              onClick={handleLogout}
               style={styles.logoutButton}
               className="dashboard-button"
             >
@@ -154,7 +177,7 @@ const AdminDashboard = () => {
             <p style={styles.analyticsValue}>{analytics.totalOrders}</p>
             <div style={styles.cardFooter}></div>
           </div>
-          
+
           <div style={styles.analyticsCard} className="analytics-card">
             <div style={styles.cardIconContainer}>
               <i className="fas fa-dollar-sign" style={styles.cardIcon}></i>
@@ -163,7 +186,7 @@ const AdminDashboard = () => {
             <p style={styles.analyticsValue}>{analytics.totalRevenue}</p>
             <div style={styles.cardFooter}></div>
           </div>
-          
+
           <div style={styles.analyticsCard} className="analytics-card">
             <div style={styles.cardIconContainer}>
               <i className="fas fa-users" style={styles.cardIcon}></i>
@@ -209,9 +232,20 @@ const AdminDashboard = () => {
                         onClick={() => handleDeleteUser(u.id, u.type)}
                         className="action-button"
                       >
-                        <i className="fas fa-trash-alt"></i> Delete
+                        <i className="fas fa-trash-alt"></i> Delete</button>
+                      <button
+                        style={{
+                          ...styles.pauseButton,
+                          backgroundColor: u.is_paused ? '#10b981' : '#f59e0b'
+                        }}
+                        onClick={() => handleTogglePause(u.id, u.type)}
+                        className="action-button"
+                      >
+                        <i className={`fas ${u.is_paused ? 'fa-play' : 'fa-pause'}`}></i> {u.is_paused ? 'Resume' : 'Pause'}
                       </button>
                     </td>
+
+
                   </tr>
                 ))}
               </tbody>
@@ -226,66 +260,66 @@ const AdminDashboard = () => {
               <i className="fas fa-id-card" style={styles.sectionIcon}></i> Driver Verification Requests
             </h2>
           </div>
-          
+
           {verifications.length === 0 ? (
             <div style={styles.emptyState}>
               <i className="fas fa-check-circle" style={styles.emptyIcon}></i>
               <p style={styles.emptyText}>No pending verification requests</p>
             </div>
           ) : (
-            <div style={styles.verificationGrid}>
-              {verifications.map((verification) => (
-                <div
-                  key={verification.driver_id}
-                  style={styles.verificationCard}
-                  className="verification-card"
-                >
-                  <div style={styles.verificationHeader}>
-                    <h3 style={styles.verificationTitle}>
-                      Driver ID: {verification.driver_id}
-                    </h3>
-                    <span style={verification.status === 'approved' ? styles.approvedStatus : 
-                                 verification.status === 'rejected' ? styles.rejectedStatus : styles.pendingStatus}>
-                      {verification.status}
-                    </span>
-                  </div>
-                  
-                  <div style={styles.verificationBody}>
-                    <p style={styles.verificationText}>
-                      <i className="fas fa-id-badge" style={styles.verificationIcon}></i>
-                      <strong>ID Proof:</strong>{" "}
-                      <a 
-                        href={`http://localhost:3001/${verification.id_proof}`} 
-                        target="_blank" 
-                        rel="noreferrer"
-                        style={styles.verificationLink}
-                      >
-                        View Document
+              <div style={styles.verificationGrid}>
+                {verifications.map((verification) => (
+                  <div
+                    key={verification.driver_id}
+                    style={styles.verificationCard}
+                    className="verification-card"
+                  >
+                    <div style={styles.verificationHeader}>
+                      <h3 style={styles.verificationTitle}>
+                        Driver ID: {verification.driver_id}
+                      </h3>
+                      <span style={verification.status === 'approved' ? styles.approvedStatus :
+                        verification.status === 'rejected' ? styles.rejectedStatus : styles.pendingStatus}>
+                        {verification.status}
+                      </span>
+                    </div>
+
+                    <div style={styles.verificationBody}>
+                      <p style={styles.verificationText}>
+                        <i className="fas fa-id-badge" style={styles.verificationIcon}></i>
+                        <strong>ID Proof:</strong>{" "}
+                        <a
+                          href={`http://localhost:3001/${verification.id_proof}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={styles.verificationLink}
+                        >
+                          View Document
                       </a>
-                    </p>
-                    
-                    <div style={styles.verificationActions}>
-                      <button
-                        onClick={() => handleVerify(verification.driver_id, "approved")}
-                        style={styles.approveButton}
-                        className="action-button"
-                      >
-                        <i className="fas fa-check"></i> Approve
+                      </p>
+
+                      <div style={styles.verificationActions}>
+                        <button
+                          onClick={() => handleVerify(verification.driver_id, "approved")}
+                          style={styles.approveButton}
+                          className="action-button"
+                        >
+                          <i className="fas fa-check"></i> Approve
                       </button>
-                      
-                      <button
-                        onClick={() => handleVerify(verification.driver_id, "rejected")}
-                        style={styles.rejectButton}
-                        className="action-button"
-                      >
-                        <i className="fas fa-times"></i> Reject
+
+                        <button
+                          onClick={() => handleVerify(verification.driver_id, "rejected")}
+                          style={styles.rejectButton}
+                          className="action-button"
+                        >
+                          <i className="fas fa-times"></i> Reject
                       </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
         </section>
       </div>
 
@@ -351,7 +385,7 @@ const AdminDashboard = () => {
 };
 
 const styles = {
-  container: { 
+  container: {
     fontFamily: "'Inter', sans-serif",
     backgroundImage: 'url("/images/adminDashboard2.png")',
     backgroundSize: 'cover',
@@ -622,7 +656,17 @@ const styles = {
     gap: '8px',
     boxShadow: '0 2px 6px rgba(255, 68, 68, 0.2)'
   },
-  verificationGrid: {
+  pauseButton: {
+    color: 'white',
+    padding: '5px 12px',
+    marginLeft: '8px',
+    borderRadius: '4px',
+    border: 'none',
+    cursor: 'pointer',
+    fontWeight: '500',
+    transition: 'all 0.2s ease'
+  },
+   verificationGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
     gap: '20px',
