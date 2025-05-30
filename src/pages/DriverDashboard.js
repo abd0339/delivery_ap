@@ -265,7 +265,7 @@ const DriverDashboard = () => {
         <div style={styles.headerContent}>
           <h1 style={styles.headerTitle}>Driver Dashboard</h1>
           <nav style={styles.nav}>
-            <Link to="/profile" className="nav-link">Profile</Link>
+            {/* <Link to="/profile" className="nav-link">Profile</Link> */}
             <Link to="/wallet" className="nav-link">Wallet</Link>
             <button onClick={handleLogout} className="logout-button">
               Logout
@@ -275,38 +275,7 @@ const DriverDashboard = () => {
         </div>
       </header>
 
-      <div style={styles.content}>
-        <div style={styles.statusSection}>
-          <div className="balance-card" style={styles.balanceCard}>
-            <div className="card-icon" style={styles.cardIcon}>💰</div>
-            <h3 style={styles.cardTitle}>Wallet Balance</h3>
-            <p style={styles.balanceAmount}>{balance}</p>
-            <Link to="/wallet" className="wallet-link">
-              View Transactions
-              <span className="link-arrow" style={styles.linkArrow}>→</span>
-            </Link>
-          </div>
-          <div className="verification-card" style={styles.verificationCard}>
-            <div className="card-icon" style={styles.cardIcon}>
-              {verificationStatus.isVerified ? '✅' : '🆔'}
-            </div>
-            <h3 style={styles.cardTitle}>ID Verification</h3>
-            {verificationStatus.isVerified ? (
-              <p style={styles.verifiedText}>Verified</p>
-            ) : (
-                <>
-                <p style={styles.notVerifiedText}>
-                  {verificationStatus.status.charAt(0).toUpperCase() + verificationStatus.status.slice(1)}
-                </p>
-                <Link to="/id-verification" className="verify-link">
-                  Verify Now
-                  <span className="link-arrow" style={styles.linkArrow}>→</span>
-                </Link>
-                </>
-              )}
-          </div>
-        </div>
-
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '35px' }}>
         <div style={styles.ordersSection}>
           <h2 style={styles.sectionTitle}>Available Orders</h2>
           <div style={styles.ordersList}>
@@ -320,7 +289,7 @@ const DriverDashboard = () => {
                   <div key={order.order_id} className="order-card" style={styles.orderCard}>
                     <div style={styles.orderHeader}>
                       <span style={styles.orderNumber}>Order #{order.order_id}</span>
-                      <span style={styles.orderAmount}>(LBP){parseFloat(order.total_amount).toFixed(2)}</span>
+                      <span style={styles.orderAmount}>${parseFloat(order.total_amount).toFixed(2)}</span>
                     </div>
                     <div style={styles.orderDetails}>
                       <div style={styles.detailItem}>
@@ -343,6 +312,7 @@ const DriverDashboard = () => {
               )}
           </div>
         </div>
+
 
         <div style={styles.ordersSection}>
           <h2 style={styles.sectionTitle}>Current Orders</h2>
@@ -386,6 +356,40 @@ const DriverDashboard = () => {
           </div>
         </div>
       </div>
+      <div style={styles.content}>
+        <div style={styles.statusSection}>
+          <div className="balance-card" style={styles.balanceCard}>
+            <div className="card-icon" style={styles.cardIcon}>💰</div>
+            <h3 style={styles.cardTitle}>Wallet Balance</h3>
+            <p style={styles.balanceAmount}>{balance}</p>
+            <Link to="/wallet" className="wallet-link">
+              View Transactions
+              <span className="link-arrow" style={styles.linkArrow}>→</span>
+            </Link>
+          </div>
+          {/* <div className="verification-card" style={styles.verificationCard}>
+            <div className="card-icon" style={styles.cardIcon}>
+              {verificationStatus.isVerified ? '✅' : '🆔'}
+            </div>
+            <h3 style={styles.cardTitle}>ID Verification</h3>
+            {verificationStatus.isVerified ? (
+              <p style={styles.verifiedText}>Verified</p>
+            ) : (
+                <>
+                <p style={styles.notVerifiedText}>
+                  {verificationStatus.status.charAt(0).toUpperCase() + verificationStatus.status.slice(1)}
+                </p>
+                <Link to="/id-verification" className="verify-link">
+                  Verify Now
+                  <span className="link-arrow" style={styles.linkArrow}>→</span>
+                </Link>
+                </>
+              )}
+          </div> */}
+        </div>
+
+
+      </div>
       <ToastContainer />
     </div>
   );
@@ -398,13 +402,13 @@ container: {
   background: 'linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%)',
   position: 'relative',
   color: '#2d3748',
-  backgroundImage: 'url("/images/driverDashboard2.png")',
+  backgroundImage: 'url("/images/driverdashboard3.png")',
   backgroundRepeat: 'no-repeat',
   backgroundSize: 'cover',
   backgroundPosition: 'center',
 },
 header: {
-    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+    background: 'orange',
     padding: '1.5rem 0',
     boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
     position: 'sticky',
@@ -503,7 +507,8 @@ header: {
     fontSize: '1.25rem',
   },
   ordersSection: {
-    marginTop: '3rem',
+    width: '550px',
+    marginTop: '5rem',
     background: 'rgba(202, 183, 183, 0.82)',
     borderRadius: '16px',
     padding: '2rem',
